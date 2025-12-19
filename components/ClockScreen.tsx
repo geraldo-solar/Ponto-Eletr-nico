@@ -10,10 +10,9 @@ interface ClockScreenProps {
   onLogout: () => void;
   events: StoredClockEvent[];
   onAddEvent: (type: ClockType) => Promise<void>;
-  onDownloadBackup: () => void;
 }
 
-const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, onAddEvent, onDownloadBackup }) => {
+const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, onAddEvent }) => {
     const [isSuccess, setIsSuccess] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     
@@ -22,7 +21,6 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
     const handleClockEvent = async (type: ClockType) => {
         if (isSuccess) return;
         await onAddEvent(type);
-        onDownloadBackup();
         setSuccessMessage(`Registro de "${type}" realizado com sucesso!`);
         setIsSuccess(true);
         setTimeout(() => {

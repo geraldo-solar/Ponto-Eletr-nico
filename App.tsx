@@ -341,7 +341,6 @@ const App: React.FC = () => {
         onLogout={handleLogout} 
         events={employeeEvents}
         onAddEvent={handleAddEvent}
-        onDownloadBackup={handleDownloadBackup}
       />;
     }
     return <LoginScreen onLogin={handleLogin} employees={employeesWithAdmin} />;
