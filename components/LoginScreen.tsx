@@ -79,7 +79,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, employees }) => {
   };
 
   return (
-    <div className="bg-gray-800 rounded-xl shadow-2xl p-6 sm:p-8 space-y-6 animate-fade-in max-w-md mx-auto">
+    <div className="bg-stone-800 rounded-xl shadow-2xl p-6 sm:p-8 space-y-6 animate-fade-in max-w-md mx-auto">
       <Clock />
       <div className="space-y-4">
         <div className="text-center text-lg text-gray-300">Digite seu PIN para continuar</div>
@@ -88,7 +88,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, employees }) => {
             <div
               key={index}
               className={`w-5 h-5 rounded-full transition-all duration-200 ${
-                pin.length > index ? 'bg-cyan-400' : 'bg-gray-600'
+                pin.length > index ? 'bg-amber-500' : 'bg-emerald-700'
               }`}
             ></div>
           ))}

@@ -58,7 +58,7 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
     const getButtonClass = (type: ClockType) => {
         const base = "w-full flex flex-col items-center justify-center p-4 rounded-lg transition-all duration-200 text-white font-semibold space-y-2 aspect-square text-center";
         if (!enabledActions.includes(type)) {
-            return `${base} bg-gray-700 text-gray-500 cursor-not-allowed`;
+            return `${base} bg-emerald-800 text-gray-500 cursor-not-allowed`;
         }
         switch(type) {
             case ClockType.Entrada: return `${base} bg-green-600 hover:bg-green-500`;
@@ -75,9 +75,9 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
     }, [events]);
 
     return (
-        <div className="bg-gray-800 rounded-xl shadow-2xl p-6 sm:p-8 space-y-6 animate-fade-in w-full max-w-md mx-auto">
+        <div className="bg-stone-800 rounded-xl shadow-2xl p-6 sm:p-8 space-y-6 animate-fade-in w-full max-w-md mx-auto">
             <div className="text-center">
-                <h2 className="text-3xl font-bold text-cyan-300">{employee.name}</h2>
+                <h2 className="text-3xl font-bold text-amber-400">{employee.name}</h2>
                 <p className="text-gray-400">Bem-vindo(a)!</p>
             </div>
             <Clock />
@@ -116,9 +116,9 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
                         {todayEvents.length > 0 ? (
                             <ul className="space-y-2 max-h-40 overflow-y-auto pr-2">
                                 {todayEvents.map((event, index) => (
-                                    <li key={index} className="flex justify-between items-center bg-gray-700 p-2 rounded-md text-sm">
+                                    <li key={index} className="flex justify-between items-center bg-emerald-800 p-2 rounded-md text-sm">
                                         <span className="font-medium text-gray-300">{event.type}</span>
-                                        <span className="font-mono text-cyan-300">{event.timestamp.toLocaleTimeString('pt-BR')}</span>
+                                        <span className="font-mono text-amber-400">{event.timestamp.toLocaleTimeString('pt-BR')}</span>
                                     </li>
                                 ))}
                             </ul>
@@ -127,7 +127,7 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
                         )}
                     </div>
 
-                    <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 bg-gray-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200">
+                    <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 bg-emerald-700 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200">
                         <LogoutIcon />
                         Sair
                     </button>

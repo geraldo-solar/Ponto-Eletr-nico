@@ -384,8 +384,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         return (
             <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-                <div className="bg-gray-800 rounded-xl shadow-2xl p-6 space-y-4 w-full max-w-md">
-                    <h3 className="text-xl font-bold text-cyan-300">Adicionar Intervalo</h3>
+                <div className="bg-stone-800 rounded-xl shadow-2xl p-6 space-y-4 w-full max-w-md">
+                    <h3 className="text-xl font-bold text-amber-400">Adicionar Intervalo</h3>
                     <p className="text-gray-300">
                         Funcionário: <strong>{employeeName}</strong><br/>
                         Data: <strong>{date.toLocaleDateString('pt-BR')}</strong>
@@ -396,7 +396,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             type="time" 
                             value={breakStart} 
                             onChange={(e) => setBreakStart(e.target.value)}
-                            className="w-full bg-gray-700 text-white p-2 rounded"
+                            className="w-full bg-emerald-800 text-white p-2 rounded"
                         />
                     </div>
                     <div className="space-y-2">
@@ -405,19 +405,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             type="time" 
                             value={breakEnd} 
                             onChange={(e) => setBreakEnd(e.target.value)}
-                            className="w-full bg-gray-700 text-white p-2 rounded"
+                            className="w-full bg-emerald-800 text-white p-2 rounded"
                         />
                     </div>
                     <div className="flex gap-2">
                         <button 
                             onClick={() => setShowAddBreakModal(null)}
-                            className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-2 rounded"
+                            className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white py-2 rounded"
                         >
                             Cancelar
                         </button>
                         <button 
                             onClick={handleAddBreak}
-                            className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white py-2 rounded"
+                            className="flex-1 bg-cyan-600 hover:bg-amber-600 text-white py-2 rounded"
                         >
                             Adicionar
                         </button>
@@ -432,12 +432,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {showAddBreakModal && <AddBreakModal />}
             
             <div className="text-center">
-                <h2 className="text-3xl font-bold text-cyan-300">{admin.name}</h2>
+                <h2 className="text-3xl font-bold text-amber-400">{admin.name}</h2>
                 <p className="text-gray-400">Painel Administrativo</p>
             </div>
 
             {/* Gerenciamento de Funcionários */}
-            <div className="bg-gray-700/50 rounded-lg p-6 space-y-6">
+            <div className="bg-emerald-800/50 rounded-lg p-6 space-y-6">
                 <h3 className="text-xl font-semibold border-b border-gray-600 pb-2">Gerenciamento de Funcionários</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -448,7 +448,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             type="text"
                             value={newEmployee.name}
                             onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
-                            className="w-full bg-gray-800 text-white p-2 rounded"
+                            className="w-full bg-stone-800 text-white p-2 rounded"
                         />
                     </div>
                     <div>
@@ -458,7 +458,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             type="tel"
                             value={newEmployee.phone}
                             onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
-                            className="w-full bg-gray-800 text-white p-2 rounded"
+                            className="w-full bg-stone-800 text-white p-2 rounded"
                         />
                     </div>
                     <div>
@@ -469,14 +469,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             maxLength={PIN_LENGTH}
                             value={newEmployee.pin}
                             onChange={(e) => setNewEmployee({ ...newEmployee, pin: e.target.value })}
-                            className="w-full bg-gray-800 text-white p-2 rounded"
+                            className="w-full bg-stone-800 text-white p-2 rounded"
                         />
                     </div>
                 </div>
 
                 <button
                     onClick={handleAddEmployee}
-                    className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                    className="w-full bg-cyan-600 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg transition-colors"
                 >
                     Cadastrar Funcionário
                 </button>
@@ -488,7 +488,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </p>
                     <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                        className="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
                     >
                         <UploadIcon />
                         Selecionar Arquivo CSV
@@ -511,7 +511,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <h4 className="text-lg font-semibold mb-2">Funcionários Ativos</h4>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                         {employees.map(emp => (
-                            <div key={emp.id} className="flex justify-between items-center bg-gray-800 p-3 rounded">
+                            <div key={emp.id} className="flex justify-between items-center bg-stone-800 p-3 rounded">
                                 <div>
                                     <p className="font-semibold">{emp.name}</p>
                                     <p className="text-sm text-gray-400">PIN: {emp.pin}</p>
@@ -543,15 +543,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 {editingEmployee && (
                     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-                        <div className="bg-gray-800 rounded-xl shadow-2xl p-6 space-y-4 w-full max-w-md">
-                            <h3 className="text-xl font-bold text-cyan-300">Editar Funcionário</h3>
+                        <div className="bg-stone-800 rounded-xl shadow-2xl p-6 space-y-4 w-full max-w-md">
+                            <h3 className="text-xl font-bold text-amber-400">Editar Funcionário</h3>
                             <div>
                                 <label className="block text-sm mb-1">Nome</label>
                                 <input
                                     type="text"
                                     value={editingEmployee.name}
                                     onChange={(e) => setEditingEmployee({ ...editingEmployee, name: e.target.value })}
-                                    className="w-full bg-gray-700 text-white p-2 rounded"
+                                    className="w-full bg-emerald-800 text-white p-2 rounded"
                                 />
                             </div>
                             <div>
@@ -560,7 +560,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     type="tel"
                                     value={editingEmployee.phone}
                                     onChange={(e) => setEditingEmployee({ ...editingEmployee, phone: e.target.value })}
-                                    className="w-full bg-gray-700 text-white p-2 rounded"
+                                    className="w-full bg-emerald-800 text-white p-2 rounded"
                                 />
                             </div>
                             <div>
@@ -570,19 +570,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     maxLength={PIN_LENGTH}
                                     value={editingEmployee.pin}
                                     onChange={(e) => setEditingEmployee({ ...editingEmployee, pin: e.target.value })}
-                                    className="w-full bg-gray-700 text-white p-2 rounded"
+                                    className="w-full bg-emerald-800 text-white p-2 rounded"
                                 />
                             </div>
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setEditingEmployee(null)}
-                                    className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-2 rounded"
+                                    className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white py-2 rounded"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     onClick={handleUpdateEmployee}
-                                    className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white py-2 rounded"
+                                    className="flex-1 bg-cyan-600 hover:bg-amber-600 text-white py-2 rounded"
                                 >
                                     Salvar
                                 </button>
@@ -593,7 +593,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             {/* Lançamento Manual de Batida */}
-            <div className="bg-gray-700/50 rounded-lg p-6 space-y-4">
+            <div className="bg-emerald-800/50 rounded-lg p-6 space-y-4">
                 <h3 className="text-xl font-semibold border-b border-gray-600 pb-2">Lançamento Manual de Batida</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -603,7 +603,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             id="manual-employeeId"
                             value={manualEmployeeId}
                             onChange={(e) => setManualEmployeeId(e.target.value)}
-                            className="w-full bg-gray-800 text-white p-2 rounded"
+                            className="w-full bg-stone-800 text-white p-2 rounded"
                         >
                             <option value="">Selecione...</option>
                             {employees.map(emp => (
@@ -618,7 +618,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             type="date"
                             value={manualDate}
                             onChange={(e) => setManualDate(e.target.value)}
-                            className="w-full bg-gray-800 text-white p-2 rounded"
+                            className="w-full bg-stone-800 text-white p-2 rounded"
                         />
                     </div>
                     <div>
@@ -628,7 +628,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             type="time"
                             value={manualTime}
                             onChange={(e) => setManualTime(e.target.value)}
-                            className="w-full bg-gray-800 text-white p-2 rounded"
+                            className="w-full bg-stone-800 text-white p-2 rounded"
                         />
                     </div>
                     <div>
@@ -637,7 +637,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             id="manual-type"
                             value={manualType}
                             onChange={(e) => setManualType(e.target.value as ClockType)}
-                            className="w-full bg-gray-800 text-white p-2 rounded"
+                            className="w-full bg-stone-800 text-white p-2 rounded"
                         >
                             <option value={ClockType.Entrada}>{ClockType.Entrada}</option>
                             <option value={ClockType.InicioIntervalo}>{ClockType.InicioIntervalo}</option>
@@ -649,14 +649,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 <button
                     onClick={handleLaunchManualEvent}
-                    className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                    className="w-full bg-cyan-600 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg transition-colors"
                 >
                     Lançar Batida
                 </button>
             </div>
 
             {/* Relatório de Pontos */}
-            <div className="bg-gray-700/50 rounded-lg p-6 space-y-4">
+            <div className="bg-emerald-800/50 rounded-lg p-6 space-y-4">
                 <h3 className="text-xl font-semibold border-b border-gray-600 pb-2">Relatório de Pontos</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -667,7 +667,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
-                            className="w-full bg-gray-800 text-white p-2 rounded"
+                            className="w-full bg-stone-800 text-white p-2 rounded"
                         />
                     </div>
                     <div>
@@ -677,7 +677,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             type="date"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
-                            className="w-full bg-gray-800 text-white p-2 rounded"
+                            className="w-full bg-stone-800 text-white p-2 rounded"
                         />
                     </div>
                     <div>
@@ -686,7 +686,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             id="employee-filter"
                             value={selectedEmployeeId}
                             onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                            className="w-full bg-gray-800 text-white p-2 rounded"
+                            className="w-full bg-stone-800 text-white p-2 rounded"
                         >
                             <option value="all">Todos os funcionários</option>
                             {employees.map(emp => (
@@ -696,8 +696,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                 </div>
 
-                <div className="bg-gray-800 rounded-lg p-4">
-                    <h4 className="text-lg font-semibold text-cyan-300 mb-4">Resumo do Período</h4>
+                <div className="bg-stone-800 rounded-lg p-4">
+                    <h4 className="text-lg font-semibold text-amber-400 mb-4">Resumo do Período</h4>
                     <div className="grid grid-cols-3 gap-4 text-center">
                         <div>
                             <p className="text-sm text-gray-400">Horas Normais</p>
@@ -709,7 +709,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
                         <div>
                             <p className="text-sm text-gray-400">Total de Horas</p>
-                            <p className="text-xl font-bold text-cyan-400">{periodSummary.totalHours}</p>
+                            <p className="text-xl font-bold text-amber-500">{periodSummary.totalHours}</p>
                         </div>
                     </div>
                     <div className="mt-4 pt-4 border-t border-gray-700 text-center">
@@ -731,7 +731,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 ) : (
                     <div className="max-h-96 overflow-y-auto">
                         <table className="w-full text-sm">
-                            <thead className="bg-gray-800 sticky top-0">
+                            <thead className="bg-stone-800 sticky top-0">
                                 <tr>
                                     <th className="p-2 text-left">Data/Hora</th>
                                     <th className="p-2 text-left">Funcionário</th>

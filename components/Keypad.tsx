@@ -15,7 +15,7 @@ const KeypadButton: React.FC<{
     <button
       type="button"
       onClick={onClick}
-      className={`bg-gray-700 hover:bg-gray-600 active:bg-gray-500 rounded-lg text-3xl font-semibold transition-colors duration-150 aspect-square flex items-center justify-center touch-manipulation select-none ${className}`}
+      className={`bg-emerald-800 hover:bg-emerald-700 active:bg-emerald-600 rounded-lg text-3xl font-semibold transition-colors duration-150 aspect-square flex items-center justify-center touch-manipulation select-none ${className}`}
       style={{ 
         WebkitTapHighlightColor: 'transparent',
         touchAction: 'manipulation',

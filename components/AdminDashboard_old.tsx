@@ -115,13 +115,13 @@ const calculateWorkDetails = (dailyEvents: StoredClockEvent[]): WorkDetails => {
 
 const renderWorkDetails = (details: WorkDetails) => {
     switch (details.status) {
-        case 'incomplete': return <span className="font-mono text-base text-yellow-400 bg-gray-800 px-2 py-1 rounded-md">Incompleto</span>;
-        case 'error': return <span className="font-mono text-base text-red-400 bg-gray-800 px-2 py-1 rounded-md">Erro</span>;
-        case 'no_entry': return <span className="font-mono text-base text-gray-500 bg-gray-800 px-2 py-1 rounded-md">-</span>;
+        case 'incomplete': return <span className="font-mono text-base text-yellow-400 bg-stone-800 px-2 py-1 rounded-md">Incompleto</span>;
+        case 'error': return <span className="font-mono text-base text-red-400 bg-stone-800 px-2 py-1 rounded-md">Erro</span>;
+        case 'no_entry': return <span className="font-mono text-base text-gray-500 bg-stone-800 px-2 py-1 rounded-md">-</span>;
         case 'complete':
             return (
                 <div className="text-right text-sm">
-                    <div className="font-mono text-base text-cyan-400 font-bold">
+                    <div className="font-mono text-base text-amber-500 font-bold">
                         Total: {formatMilliseconds(details.total)}
                     </div>
                     <div className="text-gray-400 text-xs mt-1">
@@ -629,8 +629,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
 
         return (
             <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-                <div className="bg-gray-800 rounded-xl shadow-2xl p-6 space-y-4 w-full max-w-sm animate-fade-in">
-                    <h3 className="text-xl font-bold text-cyan-300">Editar Registro</h3>
+                <div className="bg-stone-800 rounded-xl shadow-2xl p-6 space-y-4 w-full max-w-sm animate-fade-in">
+                    <h3 className="text-xl font-bold text-amber-400">Editar Registro</h3>
                     <div className="text-gray-300 space-y-1">
                         <p><strong>Funcionário:</strong> {editingEvent.employeeName}</p>
                         <p><strong>Data:</strong> {new Date(editingEvent.timestamp).toLocaleDateString('pt-BR')}</p>
@@ -643,14 +643,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                             id="event-time"
                             value={newTime}
                             onChange={(e) => setNewTime(e.target.value)}
-                            className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"
+                            className="w-full bg-emerald-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-amber-600 focus:border-amber-600"
                         />
                     </div>
                     <div className="flex justify-end gap-4 pt-4">
-                        <button onClick={() => setEditingEvent(null)} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                        <button onClick={() => setEditingEvent(null)} className="bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                             Cancelar
                         </button>
-                        <button onClick={handleSave} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                        <button onClick={handleSave} className="bg-cyan-600 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                             Salvar
                         </button>
                     </div>
@@ -687,28 +687,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
 
         return (
              <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-                <div className="bg-gray-800 rounded-xl shadow-2xl p-6 space-y-4 w-full max-w-md animate-fade-in">
-                    <h3 className="text-xl font-bold text-cyan-300">Editar Funcionário</h3>
+                <div className="bg-stone-800 rounded-xl shadow-2xl p-6 space-y-4 w-full max-w-md animate-fade-in">
+                    <h3 className="text-xl font-bold text-amber-400">Editar Funcionário</h3>
                     <div className="space-y-4">
                         <div>
                             <label htmlFor="edit-name" className="block text-sm font-medium text-gray-300 mb-1">Nome Completo</label>
-                            <input type="text" name="name" id="edit-name" value={formData.name} onChange={handleFormChange} className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"/>
+                            <input type="text" name="name" id="edit-name" value={formData.name} onChange={handleFormChange} className="w-full bg-emerald-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-amber-600 focus:border-amber-600"/>
                         </div>
                         <div>
                             <label htmlFor="edit-phone" className="block text-sm font-medium text-gray-300 mb-1">Telefone</label>
-                            <input type="tel" name="phone" id="edit-phone" value={formData.phone} onChange={handleFormChange} className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"/>
+                            <input type="tel" name="phone" id="edit-phone" value={formData.phone} onChange={handleFormChange} className="w-full bg-emerald-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-amber-600 focus:border-amber-600"/>
                         </div>
                         <div>
                             <label htmlFor="edit-pin" className="block text-sm font-medium text-gray-300 mb-1">PIN</label>
-                            <input type="password" name="pin" id="edit-pin" value={formData.pin} onChange={handleFormChange} maxLength={4} className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500" />
+                            <input type="password" name="pin" id="edit-pin" value={formData.pin} onChange={handleFormChange} maxLength={4} className="w-full bg-emerald-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-amber-600 focus:border-amber-600" />
                         </div>
                     </div>
                     {editError && <p className="text-red-400 text-sm text-center pt-2">{editError}</p>}
                     <div className="flex justify-end gap-4 pt-4">
-                        <button onClick={() => setEditingEmployee(null)} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                        <button onClick={() => setEditingEmployee(null)} className="bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                             Cancelar
                         </button>
-                        <button onClick={handleSave} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                        <button onClick={handleSave} className="bg-cyan-600 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                             Salvar Alterações
                         </button>
                     </div>
@@ -792,8 +792,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
 
         return (
             <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-                <div className="bg-gray-800 rounded-xl shadow-2xl p-6 space-y-4 w-full max-w-sm animate-fade-in">
-                    <h3 className="text-xl font-bold text-cyan-300">Adicionar Intervalo</h3>
+                <div className="bg-stone-800 rounded-xl shadow-2xl p-6 space-y-4 w-full max-w-sm animate-fade-in">
+                    <h3 className="text-xl font-bold text-amber-400">Adicionar Intervalo</h3>
                     <div className="text-gray-300 space-y-1">
                         <p><strong>Funcionário:</strong> {showAddBreakModal.employeeName}</p>
                         <p><strong>Data:</strong> {new Date(showAddBreakModal.date).toLocaleDateString('pt-BR')}</p>
@@ -806,7 +806,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                                 id="break-start-time"
                                 value={startTime}
                                 onChange={(e) => setStartTime(e.target.value)}
-                                className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"
+                                className="w-full bg-emerald-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-amber-600 focus:border-amber-600"
                             />
                         </div>
                         <div>
@@ -816,16 +816,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                                 id="break-end-time"
                                 value={endTime}
                                 onChange={(e) => setEndTime(e.target.value)}
-                                className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"
+                                className="w-full bg-emerald-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-amber-600 focus:border-amber-600"
                             />
                         </div>
                     </div>
                     {error && <p className="text-red-400 text-sm text-center">{error}</p>}
                     <div className="flex justify-end gap-4 pt-4">
-                        <button onClick={() => setShowAddBreakModal(null)} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors" disabled={isSaving}>
+                        <button onClick={() => setShowAddBreakModal(null)} className="bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg transition-colors" disabled={isSaving}>
                             Cancelar
                         </button>
-                        <button onClick={handleSave} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-gray-500" disabled={isSaving}>
+                        <button onClick={handleSave} className="bg-cyan-600 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-gray-500" disabled={isSaving}>
                             {isSaving ? 'Salvando...' : 'Salvar'}
                         </button>
                     </div>
@@ -836,15 +836,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
     
     const LogoutConfirmationModal = () => (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-xl shadow-2xl p-6 space-y-6 w-full max-w-md animate-fade-in text-center">
-                <h3 className="text-xl font-bold text-cyan-300">Backup Obrigatório para Sair</h3>
+            <div className="bg-stone-800 rounded-xl shadow-2xl p-6 space-y-6 w-full max-w-md animate-fade-in text-center">
+                <h3 className="text-xl font-bold text-amber-400">Backup Obrigatório para Sair</h3>
                 <p className="text-gray-300">
                     Para garantir a segurança dos dados, é obrigatório salvar um backup externo antes de sair do painel.
                 </p>
                 <div className="flex flex-col items-center gap-4 pt-4">
                     <button
                         onClick={handleConfirmLogout}
-                        className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                        className="w-full bg-cyan-600 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
                     >
                         <DownloadIcon />
                         Salvar Backup e Sair
@@ -862,7 +862,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
     
     const RestoreConfirmationModal = () => (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-xl shadow-2xl p-6 space-y-6 w-full max-w-md animate-fade-in text-center">
+            <div className="bg-stone-800 rounded-xl shadow-2xl p-6 space-y-6 w-full max-w-md animate-fade-in text-center">
                 <h3 className="text-xl font-bold text-yellow-300">Confirmar Restauração</h3>
                 <p className="text-gray-300">
                     ATENÇÃO: Restaurar este backup substituirá TODOS os funcionários e registros de ponto atuais.
@@ -872,7 +872,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                 <div className="flex justify-center gap-4 pt-4">
                     <button
                         onClick={() => { setShowRestoreConfirm(false); setBackupToRestore(null); }}
-                        className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+                        className="bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-2 px-6 rounded-lg transition-colors"
                     >
                         Cancelar
                     </button>
@@ -888,33 +888,33 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
     );
 
     return (
-        <div className="bg-gray-800 rounded-xl shadow-2xl p-6 sm:p-8 space-y-8 animate-fade-in w-full max-w-4xl mx-auto">
+        <div className="bg-stone-800 rounded-xl shadow-2xl p-6 sm:p-8 space-y-8 animate-fade-in w-full max-w-4xl mx-auto">
             <EditEventModal />
             <EditEmployeeModal />
             <AddBreakModal />
             {showLogoutConfirm && <LogoutConfirmationModal />}
             {showRestoreConfirm && <RestoreConfirmationModal />}
             <div className="text-center">
-                <h2 className="text-3xl font-bold text-cyan-300">{admin.name}</h2>
+                <h2 className="text-3xl font-bold text-amber-400">{admin.name}</h2>
                 <p className="text-gray-400">Painel Administrativo</p>
             </div>
 
-            <div className="bg-gray-700/50 rounded-lg p-6 space-y-6">
+            <div className="bg-emerald-800/50 rounded-lg p-6 space-y-6">
                 <h3 className="text-xl font-semibold border-b border-gray-600 pb-2">Gerenciamento de Funcionários</h3>
                 <form onSubmit={handleAddEmployeeSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div className='md:col-span-2'>
                         <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1">Nome Completo</label>
-                        <input type="text" name="name" id="name" value={newEmployee.name} onChange={handleInputChange} className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"/>
+                        <input type="text" name="name" id="name" value={newEmployee.name} onChange={handleInputChange} className="w-full bg-emerald-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-amber-600 focus:border-amber-600"/>
                     </div>
                     <div>
                         <label htmlFor="phone" className="block text-sm font-medium text-gray-300 mb-1">Telefone</label>
-                        <input type="tel" name="phone" id="phone" value={newEmployee.phone} onChange={handleInputChange} className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"/>
+                        <input type="tel" name="phone" id="phone" value={newEmployee.phone} onChange={handleInputChange} className="w-full bg-emerald-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-amber-600 focus:border-amber-600"/>
                     </div>
                     <div>
                         <label htmlFor="pin" className="block text-sm font-medium text-gray-300 mb-1">PIN</label>
-                        <input type="password" name="pin" id="pin" value={newEmployee.pin} onChange={handleInputChange} maxLength={4} className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500" />
+                        <input type="password" name="pin" id="pin" value={newEmployee.pin} onChange={handleInputChange} maxLength={4} className="w-full bg-emerald-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-amber-600 focus:border-amber-600" />
                     </div>
-                    <button type="submit" className="md:col-span-4 w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Cadastrar Funcionário</button>
+                    <button type="submit" className="md:col-span-4 w-full bg-cyan-600 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Cadastrar Funcionário</button>
                     {formError && <p className="text-red-400 text-sm md:col-span-4 text-center">{formError}</p>}
                 </form>
 
@@ -931,7 +931,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                     />
                     <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                        className="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
                     >
                         <UploadIcon />
                         Selecionar Arquivo CSV
@@ -947,13 +947,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                     <h4 className="text-lg font-semibold">Funcionários Ativos</h4>
                     <ul className="space-y-2 max-h-40 overflow-y-auto pr-2">
                         {employees.map(emp => (
-                            <li key={emp.id} className="flex justify-between items-center bg-gray-700 p-2 rounded-md">
+                            <li key={emp.id} className="flex justify-between items-center bg-emerald-800 p-2 rounded-md">
                                 <div>
                                     <span className="font-medium text-gray-200">{emp.name}</span>
                                     <span className="text-xs text-gray-400 ml-2"> (PIN: {emp.pin})</span>
                                 </div>
                                 <div className="flex items-center gap-4">
-                                  <button onClick={() => setEditingEmployee(emp)} className="text-gray-400 hover:text-cyan-300 transition-colors" aria-label="Editar funcionário">
+                                  <button onClick={() => setEditingEmployee(emp)} className="text-gray-400 hover:text-amber-400 transition-colors" aria-label="Editar funcionário">
                                     <EditIcon className="h-5 w-5" />
                                   </button>
                                   <button onClick={() => handleDeleteClick(emp.id)} className="text-gray-400 hover:text-red-400 transition-colors" aria-label="Excluir funcionário">
@@ -966,7 +966,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                 </div>
             </div>
 
-            <div className="bg-gray-700/50 rounded-lg p-6 space-y-6">
+            <div className="bg-emerald-800/50 rounded-lg p-6 space-y-6">
                 <h3 className="text-xl font-semibold border-b border-gray-600 pb-2">Backup & Restauração</h3>
                  <p className="text-sm text-gray-400">Backups são criados automaticamente a cada alteração. Para segurança extra, baixe um backup manual para guardar externamente.</p>
                  
@@ -982,7 +982,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                         </button>
                          <button
                             onClick={() => restoreFileInputRef.current?.click()}
-                            className="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                            className="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
                         >
                             <UploadIcon />
                             Restaurar de Arquivo
@@ -1004,7 +1004,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                      {backupHistory.length > 0 ? (
                         <ul className="space-y-2 max-h-40 overflow-y-auto pr-2 mt-2">
                             {backupHistory.map((backup, index) => (
-                                <li key={backup.timestamp} className="flex justify-between items-center bg-gray-700 p-2 rounded-md">
+                                <li key={backup.timestamp} className="flex justify-between items-center bg-emerald-800 p-2 rounded-md">
                                     <div>
                                         <span className="font-medium text-gray-200">Backup #{index + 1}</span>
                                         <span className="text-xs text-gray-400 ml-2">
@@ -1029,12 +1029,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                 )}
             </div>
 
-            <div className="bg-gray-700/50 rounded-lg p-6 space-y-6">
+            <div className="bg-emerald-800/50 rounded-lg p-6 space-y-6">
                 <h3 className="text-xl font-semibold border-b border-gray-600 pb-2">Lançamento Manual de Batida</h3>
                 <form onSubmit={handleManualEntrySubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div className='md:col-span-4'>
                         <label htmlFor="manual-employeeId" className="block text-sm font-medium text-gray-300 mb-1">Funcionário</label>
-                        <select name="employeeId" id="manual-employeeId" value={manualEntry.employeeId} onChange={handleManualEntryChange} required className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500">
+                        <select name="employeeId" id="manual-employeeId" value={manualEntry.employeeId} onChange={handleManualEntryChange} required className="w-full bg-emerald-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-amber-600 focus:border-amber-600">
                             <option value="" disabled>Selecione...</option>
                             {employees.map(emp => (
                                 <option key={emp.id} value={emp.id}>{emp.name}</option>
@@ -1043,21 +1043,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                     </div>
                     <div>
                         <label htmlFor="manual-date" className="block text-sm font-medium text-gray-300 mb-1">Data</label>
-                        <input type="date" name="date" id="manual-date" value={manualEntry.date} onChange={handleManualEntryChange} required className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"/>
+                        <input type="date" name="date" id="manual-date" value={manualEntry.date} onChange={handleManualEntryChange} required className="w-full bg-emerald-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-amber-600 focus:border-amber-600"/>
                     </div>
                     <div>
                         <label htmlFor="manual-time" className="block text-sm font-medium text-gray-300 mb-1">Horário</label>
-                        <input type="time" name="time" id="manual-time" value={manualEntry.time} onChange={handleManualEntryChange} required className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500" />
+                        <input type="time" name="time" id="manual-time" value={manualEntry.time} onChange={handleManualEntryChange} required className="w-full bg-emerald-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-amber-600 focus:border-amber-600" />
                     </div>
                     <div className='md:col-span-2'>
                         <label htmlFor="manual-type" className="block text-sm font-medium text-gray-300 mb-1">Tipo</label>
-                        <select name="type" id="manual-type" value={manualEntry.type} onChange={handleManualEntryChange} required className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500">
+                        <select name="type" id="manual-type" value={manualEntry.type} onChange={handleManualEntryChange} required className="w-full bg-emerald-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-amber-600 focus:border-amber-600">
                             {Object.values(ClockType).map(type => (
                                 <option key={type} value={type}>{type}</option>
                             ))}
                         </select>
                     </div>
-                    <button type="submit" className="md:col-span-4 w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 mt-2">
+                    <button type="submit" className="md:col-span-4 w-full bg-cyan-600 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 mt-2">
                         Lançar Batida
                     </button>
                     {manualEntryMessage && (
@@ -1069,18 +1069,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
             </div>
 
 
-            <div className="bg-gray-700/50 rounded-lg p-6 space-y-4">
+            <div className="bg-emerald-800/50 rounded-lg p-6 space-y-4">
                 <div>
                     <h3 className="text-xl font-semibold border-b border-gray-600 pb-2">Relatório de Pontos</h3>
                     <div className="space-y-4 mt-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label htmlFor="start-date" className="block text-sm font-medium text-gray-300 mb-1">De:</label>
-                                <input type="date" id="start-date" value={formatDateForInput(startDate)} onChange={(e) => handleDateChange(e, setStartDate)} className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"/>
+                                <input type="date" id="start-date" value={formatDateForInput(startDate)} onChange={(e) => handleDateChange(e, setStartDate)} className="w-full bg-emerald-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-amber-600 focus:border-amber-600"/>
                             </div>
                             <div>
                                 <label htmlFor="end-date" className="block text-sm font-medium text-gray-300 mb-1">Até:</label>
-                                <input type="date" id="end-date" value={formatDateForInput(endDate)} onChange={(e) => handleDateChange(e, setEndDate)} className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"/>
+                                <input type="date" id="end-date" value={formatDateForInput(endDate)} onChange={(e) => handleDateChange(e, setEndDate)} className="w-full bg-emerald-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-amber-600 focus:border-amber-600"/>
                             </div>
                         </div>
                         <div>
@@ -1089,7 +1089,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                                 id="employee-filter"
                                 value={selectedEmployeeId}
                                 onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                                className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"
+                                className="w-full bg-emerald-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-amber-600 focus:border-amber-600"
                             >
                                 <option value="all">Todos os funcionários</option>
                                 {employees.map(emp => (
@@ -1100,8 +1100,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                     </div>
                 </div>
                 
-                <div className="bg-gray-800 rounded-lg p-4 mt-4">
-                    <h4 className="text-lg font-semibold text-center text-cyan-300 mb-3">Resumo do Período</h4>
+                <div className="bg-stone-800 rounded-lg p-4 mt-4">
+                    <h4 className="text-lg font-semibold text-center text-amber-400 mb-3">Resumo do Período</h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
                         <div>
                             <p className="text-sm text-gray-400">Horas Normais</p>
@@ -1113,7 +1113,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                         </div>
                         <div>
                             <p className="text-sm text-gray-400">Total de Horas</p>
-                            <p className="text-xl font-bold text-cyan-300">{formatMilliseconds(periodTotals.total)}</p>
+                            <p className="text-xl font-bold text-amber-400">{formatMilliseconds(periodTotals.total)}</p>
                         </div>
                     </div>
                      <div className="border-t border-gray-600 mt-4 pt-4 text-center">
@@ -1125,7 +1125,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                  <button
                     onClick={handleExportCSV}
                     disabled={filteredEvents.length === 0}
-                    className="w-full mt-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full mt-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 disabled:bg-emerald-700 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                     <DownloadIcon />
                     Exportar para CSV
@@ -1135,7 +1135,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                      <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-2">
                         {dateKeys.map((date) => (
                              <div key={date}>
-                                <h4 className="text-lg font-semibold text-cyan-300 my-2 sticky top-0 bg-gray-700/50 backdrop-blur-sm py-2 capitalize border-b border-gray-600">{date}</h4>
+                                <h4 className="text-lg font-semibold text-amber-400 my-2 sticky top-0 bg-emerald-800/50 backdrop-blur-sm py-2 capitalize border-b border-gray-600">{date}</h4>
                                 <div className="space-y-3 pt-2">
                                   {Object.keys(groupedByDateAndEmployee[date].employees).map((employeeId) => {
                                       const dailyEvents = groupedByDateAndEmployee[date].employees[Number(employeeId)];
@@ -1145,7 +1145,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                                       const hasIntervalo = dailyEvents.some(e => e.type === ClockType.InicioIntervalo);
 
                                       return (
-                                          <div key={employeeId} className="bg-gray-700 p-3 rounded-lg">
+                                          <div key={employeeId} className="bg-emerald-800 p-3 rounded-lg">
                                               <div className="flex justify-between items-start mb-2 pb-2 border-b border-gray-600">
                                                   <span className="font-bold text-white pt-1">{employeeName}</span>
                                                   {renderWorkDetails(workDetails)}
@@ -1158,7 +1158,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                                                               <span className="font-mono text-gray-400">
                                                                   {new Date(event.timestamp).toLocaleTimeString('pt-BR')}
                                                               </span>
-                                                              <button onClick={() => setEditingEvent(event)} className="text-gray-500 hover:text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Editar registro">
+                                                              <button onClick={() => setEditingEvent(event)} className="text-gray-500 hover:text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Editar registro">
                                                                   <EditIcon className="h-4 w-4" />
                                                               </button>
                                                               <button onClick={() => handleDeleteEventConfirmation(event.id)} className="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Excluir registro">
@@ -1193,7 +1193,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                 )}
             </div>
 
-            <button onClick={() => setShowLogoutConfirm(true)} className="w-full flex items-center justify-center gap-2 bg-gray-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200">
+            <button onClick={() => setShowLogoutConfirm(true)} className="w-full flex items-center justify-center gap-2 bg-emerald-700 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200">
                 <LogoutIcon />
                 Sair
             </button>
