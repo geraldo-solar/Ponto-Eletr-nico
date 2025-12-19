@@ -6,7 +6,43 @@ import type { Employee, StoredClockEvent, AppState } from '../types';
 import { ClockType } from '../types';
 import { PIN_LENGTH } from '../constants';
 import { LogoutIcon, EditIcon, DownloadIcon, DeleteIcon, UploadIcon } from './Icons';
-import { formatInTimeZone } from 'date-fns-tz';
+// Função para formatar data/hora no fuso horário de Brasília (GMT-3)
+const formatBrasiliaDateTime = (timestamp: string | Date): string => {
+    const date = new Date(timestamp);
+    // Converter para GMT-3 (Brasília) - subtrair 3 horas do UTC
+    const brasiliaDate = new Date(date.getTime() - (3 * 60 * 60 * 1000));
+    
+    const day = String(brasiliaDate.getUTCDate()).padStart(2, '0');
+    const month = String(brasiliaDate.getUTCMonth() + 1).padStart(2, '0');
+    const year = brasiliaDate.getUTCFullYear();
+    const hours = String(brasiliaDate.getUTCHours()).padStart(2, '0');
+    const minutes = String(brasiliaDate.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(brasiliaDate.getUTCSeconds()).padStart(2, '0');
+    
+    return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
+};
+
+const formatBrasiliaDate = (timestamp: string | Date): string => {
+    const date = new Date(timestamp);
+    const brasiliaDate = new Date(date.getTime() - (3 * 60 * 60 * 1000));
+    
+    const day = String(brasiliaDate.getUTCDate()).padStart(2, '0');
+    const month = String(brasiliaDate.getUTCMonth() + 1).padStart(2, '0');
+    const year = brasiliaDate.getUTCFullYear();
+    
+    return `${day}/${month}/${year}`;
+};
+
+const formatBrasiliaTime = (timestamp: string | Date): string => {
+    const date = new Date(timestamp);
+    const brasiliaDate = new Date(date.getTime() - (3 * 60 * 60 * 1000));
+    
+    const hours = String(brasiliaDate.getUTCHours()).padStart(2, '0');
+    const minutes = String(brasiliaDate.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(brasiliaDate.getUTCSeconds()).padStart(2, '0');
+    
+    return `${hours}:${minutes}:${seconds}`;
+};
 
 interface AdminDashboardProps {
   admin: Employee;
@@ -342,9 +378,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         const csvHeader = 'Data,Horário,Funcionário,Tipo\n';
         const csvRows = filteredEvents.map(event => {
-            // Usar fuso horário de Brasília (America/Sao_Paulo) para garantir consistência
-            const dateStr = formatInTimeZone(event.timestamp, 'America/Sao_Paulo', 'dd/MM/yyyy');
-            const timeStr = formatInTimeZone(event.timestamp, 'America/Sao_Paulo', 'HH:mm:ss');
+            // Usar fuso horário de Brasília (GMT-3) para garantir consistência
+            const dateStr = formatBrasiliaDate(event.timestamp);
+            const timeStr = formatBrasiliaTime(event.timestamp);
             return `${dateStr},${timeStr},${event.employeeName},${event.type}`;
         }).join('\n');
 
@@ -397,7 +433,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <h3 className="text-xl font-bold text-amber-400">Adicionar Intervalo</h3>
                     <p className="text-gray-300">
                         Funcionário: <strong>{employeeName}</strong><br/>
-                        Data: <strong>{formatInTimeZone(date, 'America/Sao_Paulo', 'dd/MM/yyyy')}</strong>
+                        Data: <strong>{formatBrasiliaDate(date)}</strong>
                     </p>
                     <div className="space-y-2">
                         <label className="block text-sm">Início do Intervalo</label>
@@ -758,7 +794,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 {filteredEvents.map(event => (
                                     <tr key={event.id} className="border-b border-gray-700">
                                         <td className="p-2">
-                                            {formatInTimeZone(event.timestamp, 'America/Sao_Paulo', 'dd/MM/yyyy, HH:mm:ss')}
+                                            {formatBrasiliaDateTime(event.timestamp)}
                                         </td>
                                         <td className="p-2">{event.employeeName}</td>
                                         <td className="p-2">{event.type}</td>
