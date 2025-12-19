@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Employee, ClockType, StoredClockEvent } from './types';
 import { ADMIN_USER } from './constants';
 import LoginScreen from './components/LoginScreen';
@@ -311,9 +311,12 @@ const App: React.FC = () => {
     }
   };
 
-  const employeeEvents = allEvents.filter(
-    event => loggedInEmployee && event.employeeId === loggedInEmployee.id
+  const employeeEvents = useMemo(() => 
+    allEvents.filter(event => loggedInEmployee && event.employeeId === loggedInEmployee.id),
+    [allEvents, loggedInEmployee]
   );
+
+  const employeesWithAdmin = useMemo(() => [...employees, ADMIN_USER], [employees]);
 
   const MainComponent = () => {
     if (isAdmin && loggedInEmployee) {
@@ -341,7 +344,7 @@ const App: React.FC = () => {
         onDownloadBackup={handleDownloadBackup}
       />;
     }
-    return <LoginScreen onLogin={handleLogin} employees={[...employees, ADMIN_USER]} />;
+    return <LoginScreen onLogin={handleLogin} employees={employeesWithAdmin} />;
   }
 
   const LoadingComponent = () => (

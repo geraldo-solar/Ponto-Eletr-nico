@@ -137,4 +137,4 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
     );
 };
 
-export default ClockScreen;
+export default React.memo(ClockScreen);

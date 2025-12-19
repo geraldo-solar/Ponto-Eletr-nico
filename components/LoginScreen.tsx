@@ -101,4 +101,4 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, employees }) => {
   );
 };
 
-export default LoginScreen;
+export default React.memo(LoginScreen);

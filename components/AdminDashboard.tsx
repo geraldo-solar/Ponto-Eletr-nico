@@ -779,4 +779,4 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     );
 };
 
-export default AdminDashboard;
+export default React.memo(AdminDashboard);
