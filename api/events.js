@@ -1,5 +1,10 @@
 import { sql } from '@vercel/postgres';
 
+// Garantir que usa STORAGE_URL se POSTGRES_URL não existir
+if (!process.env.POSTGRES_URL && process.env.STORAGE_URL) {
+  process.env.POSTGRES_URL = process.env.STORAGE_URL;
+}
+
 export default async function handler(req, res) {
   // Configurar CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
