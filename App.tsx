@@ -85,17 +85,8 @@ const App: React.FC = () => {
             ...event,
             timestamp: new Date(event.timestamp)
           }));
-          // Só atualiza events se houve mudança real
-          setAllEvents(prev => {
-            // Compara pelo ID do último evento
-            const lastPrevId = prev.length > 0 ? prev[prev.length - 1].id : null;
-            const lastNewId = eventsWithDates.length > 0 ? eventsWithDates[eventsWithDates.length - 1].id : null;
-            
-            if (lastPrevId === lastNewId && prev.length === eventsWithDates.length) {
-              return prev; // Mesmos dados, retorna referência antiga
-            }
-            return eventsWithDates; // Dados novos, atualiza
-          });
+          // Sempre atualiza events (AdminDashboard tem React.memo customizado)
+          setAllEvents(eventsWithDates);
         }
       } catch (error) {
         console.error("Erro no polling:", error);
