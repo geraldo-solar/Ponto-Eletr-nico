@@ -6,6 +6,7 @@ import type { Employee, StoredClockEvent, AppState } from '../types';
 import { ClockType } from '../types';
 import { PIN_LENGTH } from '../constants';
 import { LogoutIcon, EditIcon, DownloadIcon, DeleteIcon, UploadIcon } from './Icons';
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface AdminDashboardProps {
   admin: Employee;
@@ -341,9 +342,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         const csvHeader = 'Data,Horário,Funcionário,Tipo\n';
         const csvRows = filteredEvents.map(event => {
-            const date = new Date(event.timestamp);
-            const dateStr = date.toLocaleDateString('pt-BR');
-            const timeStr = date.toLocaleTimeString('pt-BR');
+            // Usar fuso horário de Brasília (America/Sao_Paulo) para garantir consistência
+            const dateStr = formatInTimeZone(event.timestamp, 'America/Sao_Paulo', 'dd/MM/yyyy');
+            const timeStr = formatInTimeZone(event.timestamp, 'America/Sao_Paulo', 'HH:mm:ss');
             return `${dateStr},${timeStr},${event.employeeName},${event.type}`;
         }).join('\n');
 
@@ -396,7 +397,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <h3 className="text-xl font-bold text-amber-400">Adicionar Intervalo</h3>
                     <p className="text-gray-300">
                         Funcionário: <strong>{employeeName}</strong><br/>
-                        Data: <strong>{date.toLocaleDateString('pt-BR')}</strong>
+                        Data: <strong>{formatInTimeZone(date, 'America/Sao_Paulo', 'dd/MM/yyyy')}</strong>
                     </p>
                     <div className="space-y-2">
                         <label className="block text-sm">Início do Intervalo</label>
@@ -757,7 +758,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 {filteredEvents.map(event => (
                                     <tr key={event.id} className="border-b border-gray-700">
                                         <td className="p-2">
-                                            {new Date(event.timestamp).toLocaleString('pt-BR')}
+                                            {formatInTimeZone(event.timestamp, 'America/Sao_Paulo', 'dd/MM/yyyy, HH:mm:ss')}
                                         </td>
                                         <td className="p-2">{event.employeeName}</td>
                                         <td className="p-2">{event.type}</td>
