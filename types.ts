@@ -18,17 +18,12 @@ export interface ClockEvent {
 }
 
 export interface StoredClockEvent extends ClockEvent {
-    id: number;
-    employeeId: number;
-    employeeName: string;
+  id: number;
+  employeeId: number;
+  employeeName: string;
 }
 
 export interface AppState {
-    employees: Employee[];
-    events: StoredClockEvent[];
-}
-
-export interface BackupEntry {
-    timestamp: string;
-    state: AppState;
+  employees: Employee[];
+  events: StoredClockEvent[];
 }

@@ -1,15 +1,16 @@
+// Arquivo temporário - será usado para substituir AdminDashboard.tsx
+// Removidas todas as funcionalidades de backup/restore que não são mais necessárias com Vercel KV
 
 import React, { useState, useMemo, useRef } from 'react';
-import type { Employee, StoredClockEvent, BackupEntry, AppState } from '../types';
+import type { Employee, StoredClockEvent, AppState } from '../types';
 import { ClockType } from '../types';
 import { PIN_LENGTH } from '../constants';
-import { LogoutIcon, EditIcon, DownloadIcon, DeleteIcon, UploadIcon, DatabaseIcon } from './Icons';
+import { LogoutIcon, EditIcon, DownloadIcon, DeleteIcon, UploadIcon } from './Icons';
 
 interface AdminDashboardProps {
   admin: Employee;
   allEvents: StoredClockEvent[];
   employees: Employee[];
-  backupHistory: BackupEntry[];
   onAddEmployee: (employee: Omit<Employee, 'id'>) => void;
   onDeleteEmployee: (id: number) => void;
   onUpdateEmployee: (employee: Employee) => void;
@@ -18,15 +19,12 @@ interface AdminDashboardProps {
   onUpdateEvent: (eventId: number, newTimestamp: Date) => void;
   onAddManualEvent: (details: { employeeId: number; type: ClockType; timestamp: Date; }) => Promise<boolean>;
   onDeleteEvent: (eventId: number) => void;
-  onRestoreFromFile: (backupData: AppState) => Promise<boolean>;
-  onRestoreFromHistory: (backupEntry: BackupEntry) => Promise<boolean>;
   onDownloadBackup: () => void;
 }
 
 const NORMAL_WORK_MILLISECONDS = 8 * 60 * 60 * 1000;
 const NORMAL_HOUR_RATE = 8.15;
 const EXTRA_HOUR_RATE = 16.30;
-
 
 interface WorkDetails {
     total: number;
@@ -51,7 +49,6 @@ const formatMilliseconds = (totalMillis: number): string => {
 const formatCurrency = (value: number): string => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 };
-
 
 const calculateWorkDetails = (dailyEvents: StoredClockEvent[]): WorkDetails => {
     const defaultPayment = { payment: { normal: 0, extra: 0, total: 0 } };
@@ -99,843 +96,410 @@ const calculateWorkDetails = (dailyEvents: StoredClockEvent[]): WorkDetails => {
     const extraPayment = extraHours * EXTRA_HOUR_RATE;
     const totalPayment = normalPayment + extraPayment;
 
-
-    return { 
-        total: totalMillis, 
-        normal, 
-        extra, 
+    return {
+        total: totalMillis,
+        normal,
+        extra,
         payment: {
             normal: normalPayment,
             extra: extraPayment,
             total: totalPayment
         },
-        status: 'complete' 
+        status: 'complete'
     };
 };
 
-const renderWorkDetails = (details: WorkDetails) => {
-    switch (details.status) {
-        case 'incomplete': return <span className="font-mono text-base text-yellow-400 bg-gray-800 px-2 py-1 rounded-md">Incompleto</span>;
-        case 'error': return <span className="font-mono text-base text-red-400 bg-gray-800 px-2 py-1 rounded-md">Erro</span>;
-        case 'no_entry': return <span className="font-mono text-base text-gray-500 bg-gray-800 px-2 py-1 rounded-md">-</span>;
-        case 'complete':
-            return (
-                <div className="text-right text-sm">
-                    <div className="font-mono text-base text-cyan-400 font-bold">
-                        Total: {formatMilliseconds(details.total)}
-                    </div>
-                    <div className="text-gray-400 text-xs mt-1">
-                        (Normal: {formatMilliseconds(details.normal)}
-                        {details.extra > 0 && <span className="font-semibold text-green-400"> | Extra: {formatMilliseconds(details.extra)}</span>})
-                    </div>
-                    <div className="font-bold text-emerald-400 text-base mt-2">
-                        {formatCurrency(details.payment.total)}
-                    </div>
-                </div>
-            );
-    }
-};
-
-
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, employees, backupHistory, onAddEmployee, onDeleteEmployee, onUpdateEmployee, onImportEmployees, onLogout, onUpdateEvent, onAddManualEvent, onDeleteEvent, onRestoreFromFile, onRestoreFromHistory, onDownloadBackup }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
+    admin, 
+    allEvents, 
+    employees, 
+    onAddEmployee, 
+    onDeleteEmployee, 
+    onUpdateEmployee, 
+    onImportEmployees, 
+    onLogout, 
+    onUpdateEvent, 
+    onAddManualEvent, 
+    onDeleteEvent, 
+    onDownloadBackup 
+}) => {
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all');
     
-    const [newEmployee, setNewEmployee] = useState({ name: '', phone: '', pin: '' });
-    const [formError, setFormError] = useState('');
-
-    const [startDate, setStartDate] = useState<Date>(() => {
-        const date = new Date();
-        date.setDate(1);
-        return date;
+    const [startDate, setStartDate] = useState<string>(() => {
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        return firstDay.toISOString().split('T')[0];
     });
-    const [endDate, setEndDate] = useState<Date>(new Date());
-
-    const [editingEvent, setEditingEvent] = useState<StoredClockEvent | null>(null);
-    const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     
+    const [endDate, setEndDate] = useState<string>(() => {
+        const now = new Date();
+        return now.toISOString().split('T')[0];
+    });
+
+    const [newEmployee, setNewEmployee] = useState({ name: '', pin: '', phone: '' });
+    const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     const [importMessage, setImportMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const restoreFileInputRef = useRef<HTMLInputElement>(null);
-    const [restoreMessage, setRestoreMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
-    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-    const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
-    const [backupToRestore, setBackupToRestore] = useState<AppState | null>(null);
     const [showAddBreakModal, setShowAddBreakModal] = useState<{employeeId: number, employeeName: string, date: Date} | null>(null);
 
+    // Estados para lançamento manual
+    const [manualEmployeeId, setManualEmployeeId] = useState<string>('');
+    const [manualDate, setManualDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [manualTime, setManualTime] = useState<string>('09:00');
+    const [manualType, setManualType] = useState<ClockType>(ClockType.Entrada);
 
-    const formatDateForInput = (date: Date): string => {
-        return date.toISOString().split('T')[0];
-    }
-    
-    const [manualEntry, setManualEntry] = useState({
-        employeeId: '',
-        date: formatDateForInput(new Date()),
-        time: '09:00',
-        type: ClockType.Entrada,
-    });
-    const [manualEntryMessage, setManualEntryMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
-
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        if (name === 'pin' && value.length > PIN_LENGTH) return;
-        setNewEmployee(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleAddEmployeeSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newEmployee.name || !newEmployee.phone || newEmployee.pin.length !== PIN_LENGTH) {
-            setFormError('Todos os campos são obrigatórios e o PIN deve ter 4 dígitos.');
+    const handleAddEmployee = () => {
+        if (!newEmployee.name || !newEmployee.pin || !newEmployee.phone) {
+            alert('Preencha todos os campos');
             return;
         }
-        if (employees.some(emp => emp.pin === newEmployee.pin) || newEmployee.pin === admin.pin) {
-            setFormError('Este PIN já está em uso.');
+        if (newEmployee.pin.length !== PIN_LENGTH) {
+            alert(`O PIN deve ter ${PIN_LENGTH} dígitos`);
             return;
         }
         onAddEmployee(newEmployee);
-        setNewEmployee({ name: '', phone: '', pin: '' });
-        setFormError('');
+        setNewEmployee({ name: '', pin: '', phone: '' });
     };
-    
-    const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+
+    const handleUpdateEmployee = () => {
+        if (!editingEmployee) return;
+        if (!editingEmployee.name || !editingEmployee.pin || !editingEmployee.phone) {
+            alert('Preencha todos os campos');
+            return;
+        }
+        if (editingEmployee.pin.length !== PIN_LENGTH) {
+            alert(`O PIN deve ter ${PIN_LENGTH} dígitos`);
+            return;
+        }
+        onUpdateEmployee(editingEmployee);
+        setEditingEmployee(null);
+    };
+
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
 
-        const resetInput = () => { if (event.target) event.target.value = ''; };
         const showMessage = (text: string, type: 'success' | 'error') => {
             setImportMessage({ text, type });
             setTimeout(() => setImportMessage(null), 7000);
         };
 
-        const text = await file.text();
-        if (!text) {
-            showMessage('Arquivo CSV vazio ou inválido.', 'error');
-            resetInput();
-            return;
-        }
-        
-        // Handle different line endings (CRLF vs LF)
-        const lines = text.trim().split(/\r?\n/);
-        
-        let headerLine = lines.shift()?.trim();
-        if (!headerLine) {
-            showMessage('Arquivo CSV não contém cabeçalho.', 'error');
-            resetInput();
-            return;
-        }
-
-        // Handle BOM (Byte Order Mark) sometimes added by editors like Excel
-        if (headerLine.charCodeAt(0) === 0xFEFF) {
-            headerLine = headerLine.substring(1);
-        }
-
-        // Detect delimiter (comma or semicolon)
-        const delimiter = headerLine.includes(';') ? ';' : ',';
-        
-        const header = headerLine.split(delimiter).map(h => h.trim());
-        const expectedHeader = ['Nome', 'telefone', 'Pin'];
-
-        if (JSON.stringify(header) !== JSON.stringify(expectedHeader)) {
-            showMessage(`Cabeçalho inválido. Esperado: '${expectedHeader.join(',')}'. Recebido: '${header.join(',')}'`, 'error');
-            resetInput();
-            return;
-        }
-
-        const employeesToImport: Omit<Employee, 'id'>[] = [];
-        const parseErrors: string[] = [];
-
-        lines.forEach((line, index) => {
-            if (!line.trim()) return; // Ignora linhas vazias
-            const values = line.split(delimiter).map(v => v.trim());
-            
-            const name = values[0] || '';
-            const phone = values[1] || '';
-            const pin = values[2] || '';
-
-            if (values.length > 3 || pin === '') {
-                 parseErrors.push(`Linha ${index + 2}: Formato inválido ou PIN ausente. Cada linha deve ter 3 colunas e o PIN é obrigatório.`);
-                return;
-            }
-            if (!/^\d{4}$/.test(pin)) {
-                parseErrors.push(`Linha ${index + 2}: PIN '${pin}' é inválido. Deve conter exatamente 4 dígitos.`);
-                return;
-            }
-            employeesToImport.push({ name, phone, pin });
-        });
-
-        if (parseErrors.length > 0) {
-            showMessage(`Erros no arquivo: ${parseErrors.join(' ')}`, 'error');
-            resetInput();
-            return;
-        }
-
-        if (employeesToImport.length === 0) {
-            showMessage('Nenhum funcionário válido para importar.', 'error');
-            resetInput();
-            return;
-        }
-
-        const result = await onImportEmployees(employeesToImport);
-
-        if (result.errors.length > 0) {
-            showMessage(`Importação falhou: ${result.errors.join(' ')}`, 'error');
-        } else {
-            const messageParts = [];
-            if (result.added > 0) messageParts.push(`${result.added} adicionados`);
-            if (result.updated > 0) messageParts.push(`${result.updated} atualizados`);
-            const summary = messageParts.length > 0 ? messageParts.join(', ') : 'Nenhuma alteração';
-            showMessage(`Importação concluída: ${summary}.`, 'success');
-        }
-
-        resetInput();
-    };
-
-
-    const handleDeleteClick = (employeeId: number) => {
-        const employee = employees.find(e => e.id === employeeId);
-        if (employee && window.confirm(`Tem certeza que deseja excluir o funcionário ${employee.name}? Esta ação não pode ser desfeita.`)) {
-             onDeleteEmployee(employeeId);
-        }
-    }
-
-    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<Date>>) => {
-        const dateString = e.target.value;
-        if (dateString) {
-            const [year, month, day] = dateString.split('-').map(Number);
-            setter(new Date(year, month - 1, day));
-        }
-    };
-
-    const filteredEvents = useMemo(() => {
-        const startOfDay = new Date(startDate);
-        startOfDay.setHours(0, 0, 0, 0);
-
-        const endOfDay = new Date(endDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        
-        return [...allEvents]
-            .filter(event => {
-                const eventDate = new Date(event.timestamp);
-                const isAfterStart = eventDate >= startOfDay;
-                const isBeforeEnd = eventDate <= endOfDay;
-                const matchesEmployee = selectedEmployeeId === 'all' || event.employeeId === parseInt(selectedEmployeeId, 10);
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const text = e.target?.result as string;
+                const lines = text.trim().split('\n');
                 
-                return isAfterStart && isBeforeEnd && matchesEmployee;
-            })
-            .reverse();
-    }, [allEvents, selectedEmployeeId, startDate, endDate]);
-
-    const groupedByDateAndEmployee = useMemo(() => {
-        const groups: { [dateKey: string]: { date: Date, employees: { [empId: number]: StoredClockEvent[] } } } = {};
-        const reversedEvents = [...filteredEvents].reverse();
-
-        reversedEvents.forEach(event => {
-            const eventDate = new Date(event.timestamp);
-            const dateKey = eventDate.toLocaleDateString('pt-BR', {
-                year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
-            });
-            if (!groups[dateKey]) {
-                groups[dateKey] = { date: eventDate, employees: {} };
-            }
-            if (!groups[dateKey].employees[event.employeeId]) {
-                groups[dateKey].employees[event.employeeId] = [];
-            }
-            groups[dateKey].employees[event.employeeId].push(event);
-        });
-        return groups;
-    }, [filteredEvents]);
-
-    const dateKeys = useMemo(() => Object.keys(groupedByDateAndEmployee).sort((a,b) => {
-        const dateA = new Date(groupedByDateAndEmployee[a].date).setHours(0,0,0,0);
-        const dateB = new Date(groupedByDateAndEmployee[b].date).setHours(0,0,0,0);
-        return dateB - dateA;
-    }), [groupedByDateAndEmployee]);
-    
-    const periodTotals = useMemo(() => {
-        let total = 0;
-        let normal = 0;
-        let extra = 0;
-        let payment = 0;
-
-        dateKeys.forEach(date => {
-            const employeeGroupsOnDate = groupedByDateAndEmployee[date].employees;
-            Object.keys(employeeGroupsOnDate).forEach(employeeIdStr => {
-                const dailyEvents = employeeGroupsOnDate[Number(employeeIdStr)];
-                const details = calculateWorkDetails(dailyEvents);
-                if (details.status === 'complete') {
-                    total += details.total;
-                    normal += details.normal;
-                    extra += details.extra;
-                    payment += details.payment.total;
+                if (lines.length < 2) {
+                    throw new Error("Arquivo CSV vazio ou inválido.");
                 }
-            });
-        });
 
-        return { total, normal, extra, payment };
-    }, [dateKeys, groupedByDateAndEmployee]);
+                const header = lines[0].toLowerCase();
+                if (!header.includes('nome') || !header.includes('telefone') || !header.includes('pin')) {
+                    throw new Error("Cabeçalho do CSV inválido. Esperado: Nome,telefone,Pin");
+                }
 
-    const handleExportCSV = () => {
-        if (filteredEvents.length === 0) return;
+                const employeesToImport: Omit<Employee, 'id'>[] = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
 
-        const escapeCsvCell = (cell: string | number | Date): string => {
-            const strCell = String(cell);
-            if (strCell.includes(',') || strCell.includes('"') || strCell.includes('\n')) {
-                const escapedCell = strCell.replace(/"/g, '""');
-                return `"${escapedCell}"`;
-            }
-            return strCell;
-        };
-        
-        const headers = ['Data', 'Dia da Semana', 'Funcionário', 'Tipo de Registro', 'Horário', 'Horas Normais do Dia', 'Horas Extras do Dia', 'Total Horas do Dia', 'Valor Normal', 'Valor Extra', 'Valor Total Dia'];
-        const rows: (string | number)[][] = [headers];
-
-        const sortedDateKeys = Object.keys(groupedByDateAndEmployee).sort((a, b) => {
-            const dateA = new Date(groupedByDateAndEmployee[a].date).getTime();
-            const dateB = new Date(groupedByDateAndEmployee[b].date).getTime();
-            return dateA - dateB;
-        });
-
-        sortedDateKeys.forEach(date => {
-            const employeeGroupsOnDate = groupedByDateAndEmployee[date].employees;
-            Object.keys(employeeGroupsOnDate).forEach(employeeIdStr => {
-                const employeeId = Number(employeeIdStr);
-                const dailyEvents = employeeGroupsOnDate[employeeId];
-                const workDetails = calculateWorkDetails(dailyEvents);
-                
-                dailyEvents.forEach(event => {
-                    let normalHoursDisplay = '';
-                    let extraHoursDisplay = '';
-                    let totalHoursDisplay = '';
-                    let normalPaymentDisplay = '';
-                    let extraPaymentDisplay = '';
-                    let totalPaymentDisplay = '';
-
-
-                    if (event.type === ClockType.Saida && workDetails.status === 'complete') {
-                       normalHoursDisplay = formatMilliseconds(workDetails.normal);
-                       extraHoursDisplay = formatMilliseconds(workDetails.extra);
-                       totalHoursDisplay = formatMilliseconds(workDetails.total);
-                       normalPaymentDisplay = workDetails.payment.normal.toFixed(2).replace('.', ',');
-                       extraPaymentDisplay = workDetails.payment.extra.toFixed(2).replace('.', ',');
-                       totalPaymentDisplay = workDetails.payment.total.toFixed(2).replace('.', ',');
-                    } else if (event.type === ClockType.Saida) {
-                       totalHoursDisplay = "Incompleto";
+                    const parts = line.split(/[,;]/).map(p => p.trim());
+                    if (parts.length < 3) {
+                        throw new Error(`Linha ${i + 1} inválida: dados insuficientes.`);
                     }
 
-                    const eventTimestamp = new Date(event.timestamp);
-                    const row = [
-                        eventTimestamp.toLocaleDateString('pt-BR'),
-                        eventTimestamp.toLocaleDateString('pt-BR', { weekday: 'long' }),
-                        event.employeeName,
-                        event.type,
-                        eventTimestamp.toLocaleTimeString('pt-BR'),
-                        normalHoursDisplay,
-                        extraHoursDisplay,
-                        totalHoursDisplay,
-                        normalPaymentDisplay,
-                        extraPaymentDisplay,
-                        totalPaymentDisplay
-                    ];
-                    rows.push(row);
-                });
-            });
-        });
+                    const [name, phone, pin] = parts;
+                    if (!name || !phone || !pin) {
+                        throw new Error(`Linha ${i + 1} inválida: campos vazios.`);
+                    }
 
-        if (rows.length > 1) {
-            rows.push([]);
-            rows.push(['', '', '', '', 'Resumo do Período:', 'Horas Normais', 'Horas Extras', 'Total Geral', 'Valor a Pagar']);
-            rows.push([
-                '', '', '', '', '',
-                formatMilliseconds(periodTotals.normal),
-                formatMilliseconds(periodTotals.extra),
-                formatMilliseconds(periodTotals.total),
-                periodTotals.payment.toFixed(2).replace('.', ',')
-            ]);
-        }
+                    if (pin.length !== PIN_LENGTH) {
+                        throw new Error(`Linha ${i + 1}: PIN deve ter ${PIN_LENGTH} dígitos.`);
+                    }
 
-        if (selectedEmployeeId !== 'all') {
-            const selectedEmployee = employees.find(e => e.id === parseInt(selectedEmployeeId, 10));
-            if (selectedEmployee) {
-                rows.push([]);
-                rows.push([]);
-                rows.push(["Declaro, para os devidos fins, que todas as informações constantes neste relatório correspondem fielmente aos dias, horários e atividades por mim realizadas, sem qualquer omissão."]);
-                rows.push(["Reconheço que este documento reflete a totalidade das horas efetivamente trabalhadas na condição de prestador de serviços eventual, sem vínculo empregatício, e que estou ciente de que o pagamento será realizado com base nas horas aqui registradas."]);
-                rows.push(["Declaro ainda que li e conferi os registros antes da assinatura, concordando integralmente com seu conteúdo, assumindo sua veracidade e exatidão."]);
-                rows.push(["Por ser expressão da verdade, firmo o presente."]);
-                rows.push([]);
-                rows.push([`Nome do Prestador: ${selectedEmployee.name}`]);
-                rows.push([]);
-                rows.push(["Assinatura: __________________________________________________"]);
-                rows.push(["Data: _______/_______/__________"]);
-            }
-        }
-
-
-        const csvContent = rows.map(row => row.map(escapeCsvCell).join(",")).join("\n");
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-
-        const startDateStr = startDate.toLocaleDateString('sv-SE');
-        const endDateStr = endDate.toLocaleDateString('sv-SE');
-        const employeeName = selectedEmployeeId === 'all' ? 'todos' : (employees.find(e => e.id === parseInt(selectedEmployeeId, 10))?.name.replace(/\s+/g, '_') || 'desconhecido');
-        
-        link.setAttribute("download", `relatorio_ponto_${employeeName}_${startDateStr}_a_${endDateStr}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-
-    const handleDeleteEventConfirmation = (eventId: number) => {
-        if (window.confirm("Tem certeza que deseja excluir este registro? A ação não pode ser desfeita.")) {
-            onDeleteEvent(eventId);
-        }
-    };
-    
-    const handleManualEntryChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setManualEntry(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleManualEntrySubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!manualEntry.employeeId || !manualEntry.date || !manualEntry.time || !manualEntry.type) {
-            setManualEntryMessage({ text: 'Todos os campos são obrigatórios.', type: 'error' });
-            return;
-        }
-
-        const [year, month, day] = manualEntry.date.split('-').map(Number);
-        const [hours, minutes] = manualEntry.time.split(':').map(Number);
-        
-        const timestamp = new Date(year, month - 1, day, hours, minutes);
-
-        const success = await onAddManualEvent({
-            employeeId: parseInt(manualEntry.employeeId, 10),
-            type: manualEntry.type as ClockType,
-            timestamp,
-        });
-
-        if (success) {
-            setManualEntryMessage({ text: 'Batida adicionada com sucesso!', type: 'success' });
-        } else {
-            setManualEntryMessage({ text: 'Falha ao adicionar. A batida pode ser duplicada.', type: 'error' });
-        }
-
-        setTimeout(() => setManualEntryMessage(null), 3000);
-    };
-    
-    const handleRestoreFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        const showMessage = (text: string, type: 'success' | 'error') => {
-            setRestoreMessage({ text, type });
-            setTimeout(() => setRestoreMessage(null), 7000);
-        };
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const text = e.target?.result;
-                if (typeof text !== 'string') {
-                    throw new Error("Falha ao ler o arquivo.");
+                    employeesToImport.push({ name, phone, pin });
                 }
-                const data = JSON.parse(text);
 
-                if (!data || !Array.isArray(data.employees) || !Array.isArray(data.events)) {
-                    throw new Error("Formato de arquivo de backup inválido.");
+                if (employeesToImport.length === 0) {
+                    throw new Error("Nenhum funcionário válido encontrado no arquivo.");
                 }
+
+                const result = await onImportEmployees(employeesToImport);
                 
-                setBackupToRestore(data);
-                setShowRestoreConfirm(true);
+                if (result.errors.length > 0) {
+                    showMessage(result.errors.join(' '), 'error');
+                } else {
+                    showMessage(
+                        `Importação concluída! ${result.added} adicionado(s), ${result.updated} atualizado(s).`,
+                        'success'
+                    );
+                }
 
-            } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-                showMessage(`Falha na restauração: ${errorMessage}`, 'error');
-            } finally {
-                 if (event.target) event.target.value = '';
+                if (event.target) event.target.value = '';
+            } catch (error: any) {
+                showMessage(error.message || "Erro ao processar o arquivo CSV.", 'error');
+                if (event.target) event.target.value = '';
             }
         };
         reader.onerror = () => {
-            showMessage("Erro ao ler o arquivo de backup.", 'error');
+            showMessage("Erro ao ler o arquivo.", 'error');
             if (event.target) event.target.value = '';
         };
         reader.readAsText(file);
     };
-    
-    const handleConfirmRestore = async () => {
-        if (!backupToRestore) return;
 
-        const showMessage = (text: string, type: 'success' | 'error') => {
-            setRestoreMessage({ text, type });
-            setTimeout(() => setRestoreMessage(null), 7000);
-        };
-        
-        const success = await onRestoreFromFile(backupToRestore);
+    const handleLaunchManualEvent = async () => {
+        if (!manualEmployeeId) {
+            alert('Selecione um funcionário');
+            return;
+        }
+
+        const dateTime = new Date(`${manualDate}T${manualTime}`);
+        const success = await onAddManualEvent({
+            employeeId: parseInt(manualEmployeeId),
+            type: manualType,
+            timestamp: dateTime
+        });
+
         if (success) {
-            showMessage("Backup restaurado com sucesso!", 'success');
+            alert('Batida lançada com sucesso!');
         } else {
-            showMessage("Ocorreu uma falha ao salvar os dados restaurados.", 'error');
+            alert('Erro ao lançar batida (possível duplicata)');
         }
+    };
+
+    const filteredEvents = useMemo(() => {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+
+        return allEvents.filter(event => {
+            const eventDate = new Date(event.timestamp);
+            const matchesDate = eventDate >= start && eventDate <= end;
+            const matchesEmployee = selectedEmployeeId === 'all' || event.employeeId === parseInt(selectedEmployeeId);
+            return matchesDate && matchesEmployee;
+        });
+    }, [allEvents, startDate, endDate, selectedEmployeeId]);
+
+    const periodSummary = useMemo(() => {
+        const employeeGroups: Record<number, StoredClockEvent[]> = {};
         
-        setShowRestoreConfirm(false);
-        setBackupToRestore(null);
-    };
-    
-    const handleRestoreFromHistoryClick = async (backupEntry: BackupEntry) => {
-        const confirmation = window.confirm(
-            `ATENÇÃO: Você está prestes a restaurar os dados para o estado de ${new Date(backupEntry.timestamp).toLocaleString('pt-BR')}.\n\nTODOS os funcionários e registros de ponto atuais serão substituídos.\n\nEsta ação não pode ser desfeita. Deseja continuar?`
-        );
-
-        if (confirmation) {
-            const showMessage = (text: string, type: 'success' | 'error') => {
-                setRestoreMessage({ text, type });
-                setTimeout(() => setRestoreMessage(null), 7000);
-            };
-
-            const success = await onRestoreFromHistory(backupEntry);
-            if (success) {
-                showMessage("Backup restaurado com sucesso!", 'success');
-            } else {
-                showMessage("Falha ao restaurar o backup.", 'error');
+        filteredEvents.forEach(event => {
+            if (!employeeGroups[event.employeeId]) {
+                employeeGroups[event.employeeId] = [];
             }
+            employeeGroups[event.employeeId].push(event);
+        });
+
+        const dailyGroups: Record<string, StoredClockEvent[]> = {};
+        Object.values(employeeGroups).forEach(empEvents => {
+            empEvents.forEach(event => {
+                const dateKey = new Date(event.timestamp).toISOString().split('T')[0];
+                if (!dailyGroups[dateKey]) {
+                    dailyGroups[dateKey] = [];
+                }
+                dailyGroups[dateKey].push(event);
+            });
+        });
+
+        let totalNormal = 0;
+        let totalExtra = 0;
+        let totalPayment = 0;
+
+        Object.values(dailyGroups).forEach(dayEvents => {
+            const details = calculateWorkDetails(dayEvents);
+            if (details.status === 'complete') {
+                totalNormal += details.normal;
+                totalExtra += details.extra;
+                totalPayment += details.payment.total;
+            }
+        });
+
+        return {
+            normalHours: formatMilliseconds(totalNormal),
+            extraHours: formatMilliseconds(totalExtra),
+            totalHours: formatMilliseconds(totalNormal + totalExtra),
+            payment: formatCurrency(totalPayment)
+        };
+    }, [filteredEvents]);
+
+    const handleExportCSV = () => {
+        if (filteredEvents.length === 0) {
+            alert('Nenhum registro para exportar');
+            return;
         }
-    };
-    
-    const handleConfirmLogout = () => {
-        onDownloadBackup();
-        onLogout();
-    };
 
+        const csvHeader = 'Data,Horário,Funcionário,Tipo\n';
+        const csvRows = filteredEvents.map(event => {
+            const date = new Date(event.timestamp);
+            const dateStr = date.toLocaleDateString('pt-BR');
+            const timeStr = date.toLocaleTimeString('pt-BR');
+            return `${dateStr},${timeStr},${event.employeeName},${event.type}`;
+        }).join('\n');
 
-    const EditEventModal = () => {
-        if (!editingEvent) return null;
-
-        const [newTime, setNewTime] = useState(() => 
-            new Date(editingEvent.timestamp).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
-        );
-
-        const handleSave = () => {
-            const [hours, minutes] = newTime.split(':').map(Number);
-            const updatedTimestamp = new Date(editingEvent.timestamp);
-            updatedTimestamp.setHours(hours, minutes, 0, 0);
-            
-            onUpdateEvent(editingEvent.id, updatedTimestamp);
-            setEditingEvent(null);
-        };
-
-        return (
-            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-                <div className="bg-gray-800 rounded-xl shadow-2xl p-6 space-y-4 w-full max-w-sm animate-fade-in">
-                    <h3 className="text-xl font-bold text-cyan-300">Editar Registro</h3>
-                    <div className="text-gray-300 space-y-1">
-                        <p><strong>Funcionário:</strong> {editingEvent.employeeName}</p>
-                        <p><strong>Data:</strong> {new Date(editingEvent.timestamp).toLocaleDateString('pt-BR')}</p>
-                        <p><strong>Tipo:</strong> {editingEvent.type}</p>
-                    </div>
-                    <div>
-                        <label htmlFor="event-time" className="block text-sm font-medium text-gray-300 mb-1">Novo Horário:</label>
-                        <input 
-                            type="time" 
-                            id="event-time"
-                            value={newTime}
-                            onChange={(e) => setNewTime(e.target.value)}
-                            className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"
-                        />
-                    </div>
-                    <div className="flex justify-end gap-4 pt-4">
-                        <button onClick={() => setEditingEvent(null)} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                            Cancelar
-                        </button>
-                        <button onClick={handleSave} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                            Salvar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-    const EditEmployeeModal = () => {
-        if (!editingEmployee) return null;
-
-        const [formData, setFormData] = useState<Employee>(editingEmployee);
-        const [editError, setEditError] = useState('');
-
-        const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-            const { name, value } = e.target;
-             if (name === 'pin' && value.length > PIN_LENGTH) return;
-            setFormData(prev => ({ ...prev, [name]: value }));
-        };
-
-        const handleSave = () => {
-            if (!formData.name || !formData.phone || formData.pin.length !== PIN_LENGTH) {
-                setEditError('Todos os campos são obrigatórios e o PIN deve ter 4 dígitos.');
-                return;
-            }
-            if (employees.some(emp => emp.id !== formData.id && emp.pin === formData.pin) || (admin.id !== formData.id && admin.pin === formData.pin)) {
-                setEditError('Este PIN já está em uso por outro funcionário.');
-                return;
-            }
-
-            onUpdateEmployee(formData);
-            setEditingEmployee(null);
-        };
-
-        return (
-             <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-                <div className="bg-gray-800 rounded-xl shadow-2xl p-6 space-y-4 w-full max-w-md animate-fade-in">
-                    <h3 className="text-xl font-bold text-cyan-300">Editar Funcionário</h3>
-                    <div className="space-y-4">
-                        <div>
-                            <label htmlFor="edit-name" className="block text-sm font-medium text-gray-300 mb-1">Nome Completo</label>
-                            <input type="text" name="name" id="edit-name" value={formData.name} onChange={handleFormChange} className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"/>
-                        </div>
-                        <div>
-                            <label htmlFor="edit-phone" className="block text-sm font-medium text-gray-300 mb-1">Telefone</label>
-                            <input type="tel" name="phone" id="edit-phone" value={formData.phone} onChange={handleFormChange} className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"/>
-                        </div>
-                        <div>
-                            <label htmlFor="edit-pin" className="block text-sm font-medium text-gray-300 mb-1">PIN</label>
-                            <input type="password" name="pin" id="edit-pin" value={formData.pin} onChange={handleFormChange} maxLength={4} className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500" />
-                        </div>
-                    </div>
-                    {editError && <p className="text-red-400 text-sm text-center pt-2">{editError}</p>}
-                    <div className="flex justify-end gap-4 pt-4">
-                        <button onClick={() => setEditingEmployee(null)} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                            Cancelar
-                        </button>
-                        <button onClick={handleSave} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                            Salvar Alterações
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
+        const csvContent = csvHeader + csvRows;
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `relatorio_ponto_${startDate}_${endDate}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     const AddBreakModal = () => {
         if (!showAddBreakModal) return null;
+        
+        const { employeeId, employeeName, date } = showAddBreakModal;
+        const [breakStart, setBreakStart] = useState('12:00');
+        const [breakEnd, setBreakEnd] = useState('13:00');
 
-        const [startTime, setStartTime] = useState('12:00');
-        const [endTime, setEndTime] = useState('13:00');
-        const [error, setError] = useState('');
-        const [isSaving, setIsSaving] = useState(false);
+        const handleAddBreak = async () => {
+            const startDateTime = new Date(`${date.toISOString().split('T')[0]}T${breakStart}`);
+            const endDateTime = new Date(`${date.toISOString().split('T')[0]}T${breakEnd}`);
 
-        const handleSave = async () => {
-            setError('');
-            setIsSaving(true);
-            
-            const [startH, startM] = startTime.split(':').map(Number);
-            const [endH, endM] = endTime.split(':').map(Number);
-            if (startH > endH || (startH === endH && startM >= endM)) {
-                setError('O horário de fim do intervalo deve ser após o início.');
-                setIsSaving(false);
-                return;
-            }
-
-            const startDate = new Date(showAddBreakModal.date);
-            startDate.setHours(startH, startM, 0, 0);
-
-            const endDate = new Date(showAddBreakModal.date);
-            endDate.setHours(endH, endM, 0, 0);
-            
-            const dailyEventsForEmployee = allEvents.filter(e => 
-                e.employeeId === showAddBreakModal.employeeId && 
-                new Date(e.timestamp).toDateString() === showAddBreakModal.date.toDateString()
-            );
-            
-            const entrada = dailyEventsForEmployee.find(e => e.type === ClockType.Entrada);
-            const saida = dailyEventsForEmployee.find(e => e.type === ClockType.Saida);
-
-            if (entrada && startDate.getTime() < new Date(entrada.timestamp).getTime()) {
-                 setError('O início do intervalo não pode ser antes da entrada.');
-                 setIsSaving(false);
-                 return;
-            }
-            if (saida && endDate.getTime() > new Date(saida.timestamp).getTime()) {
-                 setError('O fim do intervalo não pode ser depois da saída.');
-                 setIsSaving(false);
-                 return;
-            }
-
-            const successStart = await onAddManualEvent({
-                employeeId: showAddBreakModal.employeeId,
+            const success1 = await onAddManualEvent({
+                employeeId,
                 type: ClockType.InicioIntervalo,
-                timestamp: startDate,
+                timestamp: startDateTime
             });
 
-            if (!successStart) {
-                setError('Falha ao adicionar início do intervalo. Pode ser um registro duplicado.');
-                setIsSaving(false);
-                return;
-            }
-
-            const successEnd = await onAddManualEvent({
-                employeeId: showAddBreakModal.employeeId,
+            const success2 = await onAddManualEvent({
+                employeeId,
                 type: ClockType.FimIntervalo,
-                timestamp: endDate,
+                timestamp: endDateTime
             });
 
-             if (!successEnd) {
-                setError('Falha ao adicionar fim do intervalo (início foi salvo). Pode ser um registro duplicado.');
-                setIsSaving(false);
-                return;
+            if (success1 && success2) {
+                alert('Intervalo adicionado com sucesso!');
+                setShowAddBreakModal(null);
+            } else {
+                alert('Erro ao adicionar intervalo');
             }
-
-            setShowAddBreakModal(null);
-            setIsSaving(false);
         };
 
         return (
             <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-                <div className="bg-gray-800 rounded-xl shadow-2xl p-6 space-y-4 w-full max-w-sm animate-fade-in">
+                <div className="bg-gray-800 rounded-xl shadow-2xl p-6 space-y-4 w-full max-w-md">
                     <h3 className="text-xl font-bold text-cyan-300">Adicionar Intervalo</h3>
-                    <div className="text-gray-300 space-y-1">
-                        <p><strong>Funcionário:</strong> {showAddBreakModal.employeeName}</p>
-                        <p><strong>Data:</strong> {new Date(showAddBreakModal.date).toLocaleDateString('pt-BR')}</p>
+                    <p className="text-gray-300">
+                        Funcionário: <strong>{employeeName}</strong><br/>
+                        Data: <strong>{date.toLocaleDateString('pt-BR')}</strong>
+                    </p>
+                    <div className="space-y-2">
+                        <label className="block text-sm">Início do Intervalo</label>
+                        <input 
+                            type="time" 
+                            value={breakStart} 
+                            onChange={(e) => setBreakStart(e.target.value)}
+                            className="w-full bg-gray-700 text-white p-2 rounded"
+                        />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="break-start-time" className="block text-sm font-medium text-gray-300 mb-1">Início do Intervalo:</label>
-                            <input 
-                                type="time" 
-                                id="break-start-time"
-                                value={startTime}
-                                onChange={(e) => setStartTime(e.target.value)}
-                                className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="break-end-time" className="block text-sm font-medium text-gray-300 mb-1">Fim do Intervalo:</label>
-                            <input 
-                                type="time" 
-                                id="break-end-time"
-                                value={endTime}
-                                onChange={(e) => setEndTime(e.target.value)}
-                                className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"
-                            />
-                        </div>
+                    <div className="space-y-2">
+                        <label className="block text-sm">Fim do Intervalo</label>
+                        <input 
+                            type="time" 
+                            value={breakEnd} 
+                            onChange={(e) => setBreakEnd(e.target.value)}
+                            className="w-full bg-gray-700 text-white p-2 rounded"
+                        />
                     </div>
-                    {error && <p className="text-red-400 text-sm text-center">{error}</p>}
-                    <div className="flex justify-end gap-4 pt-4">
-                        <button onClick={() => setShowAddBreakModal(null)} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors" disabled={isSaving}>
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={() => setShowAddBreakModal(null)}
+                            className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-2 rounded"
+                        >
                             Cancelar
                         </button>
-                        <button onClick={handleSave} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-gray-500" disabled={isSaving}>
-                            {isSaving ? 'Salvando...' : 'Salvar'}
+                        <button 
+                            onClick={handleAddBreak}
+                            className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white py-2 rounded"
+                        >
+                            Adicionar
                         </button>
                     </div>
                 </div>
             </div>
         );
     };
-    
-    const LogoutConfirmationModal = () => (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-xl shadow-2xl p-6 space-y-6 w-full max-w-md animate-fade-in text-center">
-                <h3 className="text-xl font-bold text-cyan-300">Backup Obrigatório para Sair</h3>
-                <p className="text-gray-300">
-                    Para garantir a segurança dos dados, é obrigatório salvar um backup externo antes de sair do painel.
-                </p>
-                <div className="flex flex-col items-center gap-4 pt-4">
-                    <button
-                        onClick={handleConfirmLogout}
-                        className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                    >
-                        <DownloadIcon />
-                        Salvar Backup e Sair
-                    </button>
-                    <button
-                        onClick={() => setShowLogoutConfirm(false)}
-                        className="text-gray-400 hover:text-white transition-colors text-sm pt-2"
-                    >
-                        Cancelar
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-    
-    const RestoreConfirmationModal = () => (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-xl shadow-2xl p-6 space-y-6 w-full max-w-md animate-fade-in text-center">
-                <h3 className="text-xl font-bold text-yellow-300">Confirmar Restauração</h3>
-                <p className="text-gray-300">
-                    ATENÇÃO: Restaurar este backup substituirá TODOS os funcionários e registros de ponto atuais.
-                    <br/><br/>
-                    <strong className="text-red-400">Esta ação não pode ser desfeita.</strong> Deseja continuar?
-                </p>
-                <div className="flex justify-center gap-4 pt-4">
-                    <button
-                        onClick={() => { setShowRestoreConfirm(false); setBackupToRestore(null); }}
-                        className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg transition-colors"
-                    >
-                        Cancelar
-                    </button>
-                    <button
-                        onClick={handleConfirmRestore}
-                        className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                    >
-                        Confirmar Restauração
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
 
     return (
-        <div className="bg-gray-800 rounded-xl shadow-2xl p-6 sm:p-8 space-y-8 animate-fade-in w-full max-w-4xl mx-auto">
-            <EditEventModal />
-            <EditEmployeeModal />
-            <AddBreakModal />
-            {showLogoutConfirm && <LogoutConfirmationModal />}
-            {showRestoreConfirm && <RestoreConfirmationModal />}
+        <div className="space-y-6 pb-8">
+            {showAddBreakModal && <AddBreakModal />}
+            
             <div className="text-center">
                 <h2 className="text-3xl font-bold text-cyan-300">{admin.name}</h2>
                 <p className="text-gray-400">Painel Administrativo</p>
             </div>
 
+            {/* Gerenciamento de Funcionários */}
             <div className="bg-gray-700/50 rounded-lg p-6 space-y-6">
                 <h3 className="text-xl font-semibold border-b border-gray-600 pb-2">Gerenciamento de Funcionários</h3>
-                <form onSubmit={handleAddEmployeeSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                    <div className='md:col-span-2'>
-                        <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1">Nome Completo</label>
-                        <input type="text" name="name" id="name" value={newEmployee.name} onChange={handleInputChange} className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"/>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label htmlFor="name" className="block text-sm mb-1">Nome Completo</label>
+                        <input
+                            id="name"
+                            type="text"
+                            value={newEmployee.name}
+                            onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
+                            className="w-full bg-gray-800 text-white p-2 rounded"
+                        />
                     </div>
                     <div>
-                        <label htmlFor="phone" className="block text-sm font-medium text-gray-300 mb-1">Telefone</label>
-                        <input type="tel" name="phone" id="phone" value={newEmployee.phone} onChange={handleInputChange} className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"/>
+                        <label htmlFor="phone" className="block text-sm mb-1">Telefone</label>
+                        <input
+                            id="phone"
+                            type="tel"
+                            value={newEmployee.phone}
+                            onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
+                            className="w-full bg-gray-800 text-white p-2 rounded"
+                        />
                     </div>
                     <div>
-                        <label htmlFor="pin" className="block text-sm font-medium text-gray-300 mb-1">PIN</label>
-                        <input type="password" name="pin" id="pin" value={newEmployee.pin} onChange={handleInputChange} maxLength={4} className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500" />
+                        <label htmlFor="pin" className="block text-sm mb-1">PIN</label>
+                        <input
+                            id="pin"
+                            type="password"
+                            maxLength={PIN_LENGTH}
+                            value={newEmployee.pin}
+                            onChange={(e) => setNewEmployee({ ...newEmployee, pin: e.target.value })}
+                            className="w-full bg-gray-800 text-white p-2 rounded"
+                        />
                     </div>
-                    <button type="submit" className="md:col-span-4 w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Cadastrar Funcionário</button>
-                    {formError && <p className="text-red-400 text-sm md:col-span-4 text-center">{formError}</p>}
-                </form>
+                </div>
+
+                <button
+                    onClick={handleAddEmployee}
+                    className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                >
+                    Cadastrar Funcionário
+                </button>
 
                 <div className="pt-4 border-t border-gray-600">
-                    <h4 className="text-lg font-semibold">Importação em Massa</h4>
-                    <p className="text-sm text-gray-400 mb-2">Importe funcionários de um arquivo CSV. O cabeçalho do arquivo deve ser <strong>Nome,telefone,Pin</strong> (separado por vírgula ou ponto e vírgula).</p>
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileSelect}
-                        accept=".csv"
-                        className="hidden"
-                        aria-hidden="true"
-                    />
+                    <h4 className="text-lg font-semibold mb-2">Importação em Massa</h4>
+                    <p className="text-sm text-gray-400 mb-2">
+                        Importe funcionários de um arquivo CSV. O cabeçalho do arquivo deve ser <strong>Nome,telefone,Pin</strong> (separado por vírgula ou ponto e vírgula).
+                    </p>
                     <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                        className="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
                     >
                         <UploadIcon />
                         Selecionar Arquivo CSV
                     </button>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        accept=".csv"
+                        className="hidden"
+                    />
                     {importMessage && (
                         <div className={`mt-2 text-center text-sm font-semibold p-2 rounded-md ${importMessage.type === 'success' ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
                             {importMessage.text}
@@ -943,257 +507,271 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, allEvents, emplo
                     )}
                 </div>
 
-                <div className="space-y-2 pt-4 border-t border-gray-600">
-                    <h4 className="text-lg font-semibold">Funcionários Ativos</h4>
-                    <ul className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                <div className="pt-4 border-t border-gray-600">
+                    <h4 className="text-lg font-semibold mb-2">Funcionários Ativos</h4>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
                         {employees.map(emp => (
-                            <li key={emp.id} className="flex justify-between items-center bg-gray-700 p-2 rounded-md">
+                            <div key={emp.id} className="flex justify-between items-center bg-gray-800 p-3 rounded">
                                 <div>
-                                    <span className="font-medium text-gray-200">{emp.name}</span>
-                                    <span className="text-xs text-gray-400 ml-2"> (PIN: {emp.pin})</span>
+                                    <p className="font-semibold">{emp.name}</p>
+                                    <p className="text-sm text-gray-400">PIN: {emp.pin}</p>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                  <button onClick={() => setEditingEmployee(emp)} className="text-gray-400 hover:text-cyan-300 transition-colors" aria-label="Editar funcionário">
-                                    <EditIcon className="h-5 w-5" />
-                                  </button>
-                                  <button onClick={() => handleDeleteClick(emp.id)} className="text-gray-400 hover:text-red-400 transition-colors" aria-label="Excluir funcionário">
-                                     <DeleteIcon className="h-5 w-5" />
-                                  </button>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            </div>
-
-            <div className="bg-gray-700/50 rounded-lg p-6 space-y-6">
-                <h3 className="text-xl font-semibold border-b border-gray-600 pb-2">Backup & Restauração</h3>
-                 <p className="text-sm text-gray-400">Backups são criados automaticamente a cada alteração. Para segurança extra, baixe um backup manual para guardar externamente.</p>
-                 
-                <div className="pt-4 border-t border-gray-600">
-                    <h4 className="text-lg font-semibold">Backup Manual</h4>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                         <button
-                            onClick={onDownloadBackup}
-                            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
-                        >
-                            <DatabaseIcon />
-                            Baixar Backup (.json)
-                        </button>
-                         <button
-                            onClick={() => restoreFileInputRef.current?.click()}
-                            className="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
-                        >
-                            <UploadIcon />
-                            Restaurar de Arquivo
-                        </button>
-                     </div>
-                </div>
-
-                 <input
-                    type="file"
-                    ref={restoreFileInputRef}
-                    onChange={handleRestoreFileSelected}
-                    accept=".json"
-                    className="hidden"
-                    aria-hidden="true"
-                />
-
-                <div className="pt-4 border-t border-gray-600">
-                    <h4 className="text-lg font-semibold">Restaurar de Backup Automático</h4>
-                     {backupHistory.length > 0 ? (
-                        <ul className="space-y-2 max-h-40 overflow-y-auto pr-2 mt-2">
-                            {backupHistory.map((backup, index) => (
-                                <li key={backup.timestamp} className="flex justify-between items-center bg-gray-700 p-2 rounded-md">
-                                    <div>
-                                        <span className="font-medium text-gray-200">Backup #{index + 1}</span>
-                                        <span className="text-xs text-gray-400 ml-2">
-                                            {new Date(backup.timestamp).toLocaleString('pt-BR')}
-                                        </span>
-                                    </div>
-                                    <button onClick={() => handleRestoreFromHistoryClick(backup)} className="bg-cyan-700 hover:bg-cyan-600 text-white text-xs font-bold py-1 px-3 rounded-lg transition-colors">
-                                        Restaurar
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setEditingEmployee(emp)}
+                                        className="bg-blue-600 hover:bg-blue-500 p-2 rounded"
+                                        title="Editar funcionário"
+                                    >
+                                        <EditIcon />
                                     </button>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="text-gray-500 text-center py-4">Nenhum backup automático encontrado.</p>
-                    )}
+                                    <button
+                                        onClick={() => {
+                                            if (confirm(`Deletar ${emp.name}?`)) {
+                                                onDeleteEmployee(emp.id);
+                                            }
+                                        }}
+                                        className="bg-red-600 hover:bg-red-500 p-2 rounded"
+                                        title="Excluir funcionário"
+                                    >
+                                        <DeleteIcon />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
-                 {restoreMessage && (
-                    <div className={`mt-2 text-center text-sm font-semibold p-2 rounded-md ${restoreMessage.type === 'success' ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
-                        {restoreMessage.text}
+                {editingEmployee && (
+                    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                        <div className="bg-gray-800 rounded-xl shadow-2xl p-6 space-y-4 w-full max-w-md">
+                            <h3 className="text-xl font-bold text-cyan-300">Editar Funcionário</h3>
+                            <div>
+                                <label className="block text-sm mb-1">Nome</label>
+                                <input
+                                    type="text"
+                                    value={editingEmployee.name}
+                                    onChange={(e) => setEditingEmployee({ ...editingEmployee, name: e.target.value })}
+                                    className="w-full bg-gray-700 text-white p-2 rounded"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm mb-1">Telefone</label>
+                                <input
+                                    type="tel"
+                                    value={editingEmployee.phone}
+                                    onChange={(e) => setEditingEmployee({ ...editingEmployee, phone: e.target.value })}
+                                    className="w-full bg-gray-700 text-white p-2 rounded"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm mb-1">PIN</label>
+                                <input
+                                    type="password"
+                                    maxLength={PIN_LENGTH}
+                                    value={editingEmployee.pin}
+                                    onChange={(e) => setEditingEmployee({ ...editingEmployee, pin: e.target.value })}
+                                    className="w-full bg-gray-700 text-white p-2 rounded"
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setEditingEmployee(null)}
+                                    className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-2 rounded"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleUpdateEmployee}
+                                    className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white py-2 rounded"
+                                >
+                                    Salvar
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
 
-            <div className="bg-gray-700/50 rounded-lg p-6 space-y-6">
+            {/* Lançamento Manual de Batida */}
+            <div className="bg-gray-700/50 rounded-lg p-6 space-y-4">
                 <h3 className="text-xl font-semibold border-b border-gray-600 pb-2">Lançamento Manual de Batida</h3>
-                <form onSubmit={handleManualEntrySubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                    <div className='md:col-span-4'>
-                        <label htmlFor="manual-employeeId" className="block text-sm font-medium text-gray-300 mb-1">Funcionário</label>
-                        <select name="employeeId" id="manual-employeeId" value={manualEntry.employeeId} onChange={handleManualEntryChange} required className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500">
-                            <option value="" disabled>Selecione...</option>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label htmlFor="manual-employeeId" className="block text-sm mb-1">Funcionário</label>
+                        <select
+                            id="manual-employeeId"
+                            value={manualEmployeeId}
+                            onChange={(e) => setManualEmployeeId(e.target.value)}
+                            className="w-full bg-gray-800 text-white p-2 rounded"
+                        >
+                            <option value="">Selecione...</option>
                             {employees.map(emp => (
                                 <option key={emp.id} value={emp.id}>{emp.name}</option>
                             ))}
                         </select>
                     </div>
                     <div>
-                        <label htmlFor="manual-date" className="block text-sm font-medium text-gray-300 mb-1">Data</label>
-                        <input type="date" name="date" id="manual-date" value={manualEntry.date} onChange={handleManualEntryChange} required className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"/>
+                        <label htmlFor="manual-date" className="block text-sm mb-1">Data</label>
+                        <input
+                            id="manual-date"
+                            type="date"
+                            value={manualDate}
+                            onChange={(e) => setManualDate(e.target.value)}
+                            className="w-full bg-gray-800 text-white p-2 rounded"
+                        />
                     </div>
                     <div>
-                        <label htmlFor="manual-time" className="block text-sm font-medium text-gray-300 mb-1">Horário</label>
-                        <input type="time" name="time" id="manual-time" value={manualEntry.time} onChange={handleManualEntryChange} required className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500" />
+                        <label htmlFor="manual-time" className="block text-sm mb-1">Horário</label>
+                        <input
+                            id="manual-time"
+                            type="time"
+                            value={manualTime}
+                            onChange={(e) => setManualTime(e.target.value)}
+                            className="w-full bg-gray-800 text-white p-2 rounded"
+                        />
                     </div>
-                    <div className='md:col-span-2'>
-                        <label htmlFor="manual-type" className="block text-sm font-medium text-gray-300 mb-1">Tipo</label>
-                        <select name="type" id="manual-type" value={manualEntry.type} onChange={handleManualEntryChange} required className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500">
-                            {Object.values(ClockType).map(type => (
-                                <option key={type} value={type}>{type}</option>
+                    <div>
+                        <label htmlFor="manual-type" className="block text-sm mb-1">Tipo</label>
+                        <select
+                            id="manual-type"
+                            value={manualType}
+                            onChange={(e) => setManualType(e.target.value as ClockType)}
+                            className="w-full bg-gray-800 text-white p-2 rounded"
+                        >
+                            <option value={ClockType.Entrada}>{ClockType.Entrada}</option>
+                            <option value={ClockType.InicioIntervalo}>{ClockType.InicioIntervalo}</option>
+                            <option value={ClockType.FimIntervalo}>{ClockType.FimIntervalo}</option>
+                            <option value={ClockType.Saida}>{ClockType.Saida}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button
+                    onClick={handleLaunchManualEvent}
+                    className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                >
+                    Lançar Batida
+                </button>
+            </div>
+
+            {/* Relatório de Pontos */}
+            <div className="bg-gray-700/50 rounded-lg p-6 space-y-4">
+                <h3 className="text-xl font-semibold border-b border-gray-600 pb-2">Relatório de Pontos</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label htmlFor="start-date" className="block text-sm mb-1">De:</label>
+                        <input
+                            id="start-date"
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="w-full bg-gray-800 text-white p-2 rounded"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="end-date" className="block text-sm mb-1">Até:</label>
+                        <input
+                            id="end-date"
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="w-full bg-gray-800 text-white p-2 rounded"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="employee-filter" className="block text-sm mb-1">Funcionário:</label>
+                        <select
+                            id="employee-filter"
+                            value={selectedEmployeeId}
+                            onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                            className="w-full bg-gray-800 text-white p-2 rounded"
+                        >
+                            <option value="all">Todos os funcionários</option>
+                            {employees.map(emp => (
+                                <option key={emp.id} value={emp.id}>{emp.name}</option>
                             ))}
                         </select>
                     </div>
-                    <button type="submit" className="md:col-span-4 w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 mt-2">
-                        Lançar Batida
-                    </button>
-                    {manualEntryMessage && (
-                        <div className={`md:col-span-4 text-center text-sm font-semibold p-2 rounded-md ${manualEntryMessage.type === 'success' ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
-                            {manualEntryMessage.text}
-                        </div>
-                    )}
-                </form>
-            </div>
-
-
-            <div className="bg-gray-700/50 rounded-lg p-6 space-y-4">
-                <div>
-                    <h3 className="text-xl font-semibold border-b border-gray-600 pb-2">Relatório de Pontos</h3>
-                    <div className="space-y-4 mt-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label htmlFor="start-date" className="block text-sm font-medium text-gray-300 mb-1">De:</label>
-                                <input type="date" id="start-date" value={formatDateForInput(startDate)} onChange={(e) => handleDateChange(e, setStartDate)} className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"/>
-                            </div>
-                            <div>
-                                <label htmlFor="end-date" className="block text-sm font-medium text-gray-300 mb-1">Até:</label>
-                                <input type="date" id="end-date" value={formatDateForInput(endDate)} onChange={(e) => handleDateChange(e, setEndDate)} className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"/>
-                            </div>
-                        </div>
-                        <div>
-                            <label htmlFor="employee-filter" className="block text-sm font-medium text-gray-300 mb-1">Funcionário:</label>
-                            <select 
-                                id="employee-filter"
-                                value={selectedEmployeeId}
-                                onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                                className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"
-                            >
-                                <option value="all">Todos os funcionários</option>
-                                {employees.map(emp => (
-                                    <option key={emp.id} value={emp.id}>{emp.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
                 </div>
-                
-                <div className="bg-gray-800 rounded-lg p-4 mt-4">
-                    <h4 className="text-lg font-semibold text-center text-cyan-300 mb-3">Resumo do Período</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
+
+                <div className="bg-gray-800 rounded-lg p-4">
+                    <h4 className="text-lg font-semibold text-cyan-300 mb-4">Resumo do Período</h4>
+                    <div className="grid grid-cols-3 gap-4 text-center">
                         <div>
                             <p className="text-sm text-gray-400">Horas Normais</p>
-                            <p className="text-xl font-bold text-white">{formatMilliseconds(periodTotals.normal)}</p>
+                            <p className="text-xl font-bold text-white">{periodSummary.normalHours}</p>
                         </div>
-                        <div className="md:border-x border-gray-600">
+                        <div>
                             <p className="text-sm text-gray-400">Horas Extras</p>
-                            <p className="text-xl font-bold text-green-400">{formatMilliseconds(periodTotals.extra)}</p>
+                            <p className="text-xl font-bold text-green-400">{periodSummary.extraHours}</p>
                         </div>
                         <div>
                             <p className="text-sm text-gray-400">Total de Horas</p>
-                            <p className="text-xl font-bold text-cyan-300">{formatMilliseconds(periodTotals.total)}</p>
+                            <p className="text-xl font-bold text-cyan-400">{periodSummary.totalHours}</p>
                         </div>
                     </div>
-                     <div className="border-t border-gray-600 mt-4 pt-4 text-center">
+                    <div className="mt-4 pt-4 border-t border-gray-700 text-center">
                         <p className="text-sm text-gray-400">Valor a Pagar (Período)</p>
-                        <p className="text-2xl font-bold text-emerald-400">{formatCurrency(periodTotals.payment)}</p>
+                        <p className="text-2xl font-bold text-green-400">{periodSummary.payment}</p>
                     </div>
                 </div>
 
-                 <button
+                <button
                     onClick={handleExportCSV}
-                    disabled={filteredEvents.length === 0}
-                    className="w-full mt-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
                 >
                     <DownloadIcon />
                     Exportar para CSV
                 </button>
-                
-                {filteredEvents.length > 0 ? (
-                     <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-2">
-                        {dateKeys.map((date) => (
-                             <div key={date}>
-                                <h4 className="text-lg font-semibold text-cyan-300 my-2 sticky top-0 bg-gray-700/50 backdrop-blur-sm py-2 capitalize border-b border-gray-600">{date}</h4>
-                                <div className="space-y-3 pt-2">
-                                  {Object.keys(groupedByDateAndEmployee[date].employees).map((employeeId) => {
-                                      const dailyEvents = groupedByDateAndEmployee[date].employees[Number(employeeId)];
-                                      const employeeName = dailyEvents[0]?.employeeName || 'Desconhecido';
-                                      const workDetails = calculateWorkDetails(dailyEvents);
-                                      const hasEntrada = dailyEvents.some(e => e.type === ClockType.Entrada);
-                                      const hasIntervalo = dailyEvents.some(e => e.type === ClockType.InicioIntervalo);
 
-                                      return (
-                                          <div key={employeeId} className="bg-gray-700 p-3 rounded-lg">
-                                              <div className="flex justify-between items-start mb-2 pb-2 border-b border-gray-600">
-                                                  <span className="font-bold text-white pt-1">{employeeName}</span>
-                                                  {renderWorkDetails(workDetails)}
-                                              </div>
-                                              <ul className="space-y-1">
-                                                  {dailyEvents.map((event) => (
-                                                      <li key={event.id} className="flex justify-between items-center text-sm group">
-                                                          <span className="text-gray-300">{event.type}</span>
-                                                          <div className="flex items-center gap-2">
-                                                              <span className="font-mono text-gray-400">
-                                                                  {new Date(event.timestamp).toLocaleTimeString('pt-BR')}
-                                                              </span>
-                                                              <button onClick={() => setEditingEvent(event)} className="text-gray-500 hover:text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Editar registro">
-                                                                  <EditIcon className="h-4 w-4" />
-                                                              </button>
-                                                              <button onClick={() => handleDeleteEventConfirmation(event.id)} className="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Excluir registro">
-                                                                  <DeleteIcon className="h-4 w-4" />
-                                                              </button>
-                                                          </div>
-                                                      </li>
-                                                  ))}
-                                              </ul>
-                                              {hasEntrada && !hasIntervalo && (
-                                                <div className="mt-3 pt-3 border-t border-gray-600">
-                                                    <button
-                                                        onClick={() => setShowAddBreakModal({ employeeId: Number(employeeId), employeeName, date: groupedByDateAndEmployee[date].date })}
-                                                        className="w-full text-xs bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 px-2 rounded-lg transition-colors flex items-center justify-center gap-1"
-                                                    >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                        Adicionar Intervalo Faltante
-                                                    </button>
-                                                </div>
-                                              )}
-                                          </div>
-                                      );
-                                  })}
-                                </div>
-                             </div>
-                        ))}
-                    </div>
+                {filteredEvents.length === 0 ? (
+                    <p className="text-center text-gray-400 py-4">Nenhum registro encontrado para o período e filtro selecionados.</p>
                 ) : (
-                    <p className="text-gray-500 text-center py-4">Nenhum registro encontrado para o período e filtro selecionados.</p>
+                    <div className="max-h-96 overflow-y-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-800 sticky top-0">
+                                <tr>
+                                    <th className="p-2 text-left">Data/Hora</th>
+                                    <th className="p-2 text-left">Funcionário</th>
+                                    <th className="p-2 text-left">Tipo</th>
+                                    <th className="p-2 text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredEvents.map(event => (
+                                    <tr key={event.id} className="border-b border-gray-700">
+                                        <td className="p-2">
+                                            {new Date(event.timestamp).toLocaleString('pt-BR')}
+                                        </td>
+                                        <td className="p-2">{event.employeeName}</td>
+                                        <td className="p-2">{event.type}</td>
+                                        <td className="p-2 text-center">
+                                            <button
+                                                onClick={() => {
+                                                    if (confirm('Deletar este registro?')) {
+                                                        onDeleteEvent(event.id);
+                                                    }
+                                                }}
+                                                className="bg-red-600 hover:bg-red-500 p-1 rounded text-xs"
+                                            >
+                                                <DeleteIcon />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
 
-            <button onClick={() => setShowLogoutConfirm(true)} className="w-full flex items-center justify-center gap-2 bg-gray-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200">
+            {/* Botão de Sair */}
+            <button
+                onClick={onLogout}
+                className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
                 <LogoutIcon />
                 Sair
             </button>
