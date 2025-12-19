@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 
 interface KeypadProps {
   onKeyPress: (key: string) => void;
@@ -11,28 +11,16 @@ const KeypadButton: React.FC<{
   children: React.ReactNode; 
   className?: string 
 }> = ({ onClick, children, className = '' }) => {
-  const lastClickTime = useRef(0);
-  
-  const handleClick = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Debounce: ignorar cliques muito rápidos (menos de 200ms)
-    const now = Date.now();
-    if (now - lastClickTime.current < 200) {
-      return;
-    }
-    lastClickTime.current = now;
-    
-    onClick();
-  };
-
   return (
     <button
-      onClick={handleClick}
-      onTouchStart={handleClick}
+      type="button"
+      onClick={onClick}
       className={`bg-gray-700 hover:bg-gray-600 active:bg-gray-500 rounded-lg text-3xl font-semibold transition-colors duration-150 aspect-square flex items-center justify-center touch-manipulation select-none ${className}`}
-      style={{ WebkitTapHighlightColor: 'transparent' }}
+      style={{ 
+        WebkitTapHighlightColor: 'transparent',
+        touchAction: 'manipulation',
+        userSelect: 'none'
+      }}
     >
       {children}
     </button>

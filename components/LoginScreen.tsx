@@ -13,6 +13,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, employees }) => {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const isProcessing = useRef(false);
+  const lastActionTime = useRef(0);
 
   useEffect(() => {
     if (pin.length === PIN_LENGTH && !isProcessing.current) {
@@ -24,6 +25,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, employees }) => {
       if (employee) {
         setError('');
         onLogin(employee);
+        isProcessing.current = false;
       } else {
         setError('PIN inválido. Tente novamente.');
         setTimeout(() => {
@@ -36,6 +38,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, employees }) => {
   }, [pin, onLogin, employees]);
 
   const handleKeyPress = (key: string) => {
+    // Debounce: ignorar ações muito rápidas
+    const now = Date.now();
+    if (now - lastActionTime.current < 150) {
+      return;
+    }
+    lastActionTime.current = now;
+    
     if (isProcessing.current) return;
     
     setPin(prev => {
@@ -47,11 +56,23 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, employees }) => {
   };
 
   const handleBackspace = () => {
+    const now = Date.now();
+    if (now - lastActionTime.current < 150) {
+      return;
+    }
+    lastActionTime.current = now;
+    
     if (isProcessing.current) return;
     setPin(prev => prev.slice(0, -1));
   };
 
   const handleClear = () => {
+    const now = Date.now();
+    if (now - lastActionTime.current < 150) {
+      return;
+    }
+    lastActionTime.current = now;
+    
     if (isProcessing.current) return;
     setPin('');
     setError('');
