@@ -20,6 +20,7 @@ interface AdminDashboardProps {
   onAddManualEvent: (details: { employeeId: number; type: ClockType; timestamp: Date; }) => Promise<boolean>;
   onDeleteEvent: (eventId: number) => void;
   onDownloadBackup: () => void;
+  onRefresh: () => Promise<void>;
 }
 
 const NORMAL_WORK_MILLISECONDS = 8 * 60 * 60 * 1000;
@@ -121,7 +122,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     onUpdateEvent, 
     onAddManualEvent, 
     onDeleteEvent, 
-    onDownloadBackup 
+    onDownloadBackup,
+    onRefresh 
 }) => {
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all');
     
@@ -431,9 +433,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="space-y-6 pb-8">
             {showAddBreakModal && <AddBreakModal />}
             
-            <div className="text-center">
+            <div className="text-center space-y-2">
                 <h2 className="text-3xl font-bold text-amber-400">{admin.name}</h2>
                 <p className="text-gray-400">Painel Administrativo</p>
+                <button
+                    onClick={onRefresh}
+                    className="mt-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors text-sm"
+                >
+                    🔄 Atualizar Dados
+                </button>
             </div>
 
             {/* Gerenciamento de Funcionários */}

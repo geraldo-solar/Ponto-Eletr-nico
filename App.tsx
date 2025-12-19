@@ -54,10 +54,10 @@ const App: React.FC = () => {
     loadData();
   }, [fetchEmployees, fetchEvents]);
 
-  // Polling para sincronização em tempo real (a cada 2 segundos)
-  // DESABILITADO na tela de login para evitar re-renders
+  // Polling para sincronização em tempo real (a cada 5 segundos)
+  // DESABILITADO na tela de login e no painel admin para evitar re-renders
   useEffect(() => {
-    if (isLoading || !loggedInEmployee) return;
+    if (isLoading || !loggedInEmployee || isAdmin) return;
 
     const pollingInterval = setInterval(async () => {
       // Chamar diretamente as APIs sem usar fetchEmployees/fetchEvents
@@ -94,7 +94,7 @@ const App: React.FC = () => {
     }, 5000); // 5 segundos (reduzido para diminuir re-renders)
 
     return () => clearInterval(pollingInterval);
-  }, [isLoading, loggedInEmployee]); // Polling apenas quando logado
+  }, [isLoading, loggedInEmployee, isAdmin]); // Polling apenas para funcionários (não admin)
 
   const handleLogin = (employee: Employee) => {
     if (employee.id === ADMIN_USER.id) {
@@ -340,6 +340,9 @@ const App: React.FC = () => {
         onAddManualEvent={handleAddManualEvent}
         onDeleteEvent={handleDeleteEvent}
         onDownloadBackup={handleDownloadBackup}
+        onRefresh={async () => {
+          await Promise.all([fetchEmployees(), fetchEvents()]);
+        }}
         onLogout={handleLogout} 
       />;
     }
