@@ -85,13 +85,8 @@ const App: React.FC = () => {
             ...event,
             timestamp: new Date(event.timestamp)
           }));
-          // Só atualiza se houve mudança
-          setAllEvents(prev => {
-            if (prev.length === eventsWithDates.length) {
-              return prev; // Se mesmo tamanho, provavelmente não mudou
-            }
-            return eventsWithDates;
-          });
+          // Sempre atualiza events (importante para sincronização em tempo real)
+          setAllEvents(eventsWithDates);
         }
       } catch (error) {
         console.error("Erro no polling:", error);
