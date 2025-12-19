@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import Clock from './Clock';
 import Keypad from './Keypad';
 import { PIN_LENGTH, ADMIN_USER } from '../constants';
@@ -13,35 +13,33 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, employees }) => {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
 
-  const handleLoginAttempt = useCallback(() => {
-    const allUsers = [...employees, ADMIN_USER];
-    const employee = allUsers.find((emp) => emp.pin === pin);
-    if (employee) {
-      setError('');
-      onLogin(employee);
-    } else {
-      setError('PIN inválido. Tente novamente.');
-      setTimeout(() => {
-        setPin('');
+  // Remover useCallback para evitar dependência circular
+  useEffect(() => {
+    if (pin.length === PIN_LENGTH) {
+      const allUsers = [...employees, ADMIN_USER];
+      const employee = allUsers.find((emp) => emp.pin === pin);
+      
+      if (employee) {
         setError('');
-      }, 1500);
+        onLogin(employee);
+      } else {
+        setError('PIN inválido. Tente novamente.');
+        setTimeout(() => {
+          setPin('');
+          setError('');
+        }, 1500);
+      }
     }
   }, [pin, onLogin, employees]);
 
-  useEffect(() => {
-    if (pin.length === PIN_LENGTH) {
-      handleLoginAttempt();
-    }
-  }, [pin, handleLoginAttempt]);
-
   const handleKeyPress = (key: string) => {
     if (pin.length < PIN_LENGTH) {
-      setPin(pin + key);
+      setPin(prev => prev + key);
     }
   };
 
   const handleBackspace = () => {
-    setPin(pin.slice(0, -1));
+    setPin(prev => prev.slice(0, -1));
   };
 
   const handleClear = () => {
