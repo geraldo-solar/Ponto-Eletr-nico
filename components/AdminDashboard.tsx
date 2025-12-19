@@ -6,40 +6,36 @@ import type { Employee, StoredClockEvent, AppState } from '../types';
 import { ClockType } from '../types';
 import { PIN_LENGTH } from '../constants';
 import { LogoutIcon, EditIcon, DownloadIcon, DeleteIcon, UploadIcon } from './Icons';
-// Função para formatar data/hora no fuso horário de Brasília (GMT-3)
+// Funções para formatar data/hora interpretando timestamps UTC como horário local de Brasília
+// Os timestamps no banco estão em UTC, mas representam horários locais de Brasília
+// Exemplo: "2025-12-18T08:00:00.000Z" deve ser exibido como "18/12/2025, 08:00:00"
 const formatBrasiliaDateTime = (timestamp: string | Date): string => {
     const date = new Date(timestamp);
-    // Converter para GMT-3 (Brasília) - subtrair 3 horas do UTC
-    const brasiliaDate = new Date(date.getTime() - (3 * 60 * 60 * 1000));
-    
-    const day = String(brasiliaDate.getUTCDate()).padStart(2, '0');
-    const month = String(brasiliaDate.getUTCMonth() + 1).padStart(2, '0');
-    const year = brasiliaDate.getUTCFullYear();
-    const hours = String(brasiliaDate.getUTCHours()).padStart(2, '0');
-    const minutes = String(brasiliaDate.getUTCMinutes()).padStart(2, '0');
-    const seconds = String(brasiliaDate.getUTCSeconds()).padStart(2, '0');
+    // Extrair componentes do timestamp UTC e exibir como se fosse local
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const year = date.getUTCFullYear();
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
     
     return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
 };
 
 const formatBrasiliaDate = (timestamp: string | Date): string => {
     const date = new Date(timestamp);
-    const brasiliaDate = new Date(date.getTime() - (3 * 60 * 60 * 1000));
-    
-    const day = String(brasiliaDate.getUTCDate()).padStart(2, '0');
-    const month = String(brasiliaDate.getUTCMonth() + 1).padStart(2, '0');
-    const year = brasiliaDate.getUTCFullYear();
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const year = date.getUTCFullYear();
     
     return `${day}/${month}/${year}`;
 };
 
 const formatBrasiliaTime = (timestamp: string | Date): string => {
     const date = new Date(timestamp);
-    const brasiliaDate = new Date(date.getTime() - (3 * 60 * 60 * 1000));
-    
-    const hours = String(brasiliaDate.getUTCHours()).padStart(2, '0');
-    const minutes = String(brasiliaDate.getUTCMinutes()).padStart(2, '0');
-    const seconds = String(brasiliaDate.getUTCSeconds()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
     
     return `${hours}:${minutes}:${seconds}`;
 };
