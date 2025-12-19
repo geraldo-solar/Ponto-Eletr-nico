@@ -59,11 +59,34 @@ const App: React.FC = () => {
     if (isLoading) return;
 
     const pollingInterval = setInterval(async () => {
-      await Promise.all([fetchEmployees(), fetchEvents()]);
+      // Chamar diretamente as APIs sem usar fetchEmployees/fetchEvents
+      // para evitar dependências que causam re-renders
+      try {
+        const [employeesRes, eventsRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/employees`),
+          fetch(`${API_BASE_URL}/api/events`)
+        ]);
+        
+        if (employeesRes.ok) {
+          const employeesData = await employeesRes.json();
+          setEmployees(employeesData);
+        }
+        
+        if (eventsRes.ok) {
+          const eventsData = await eventsRes.json();
+          const eventsWithDates = eventsData.map((event: any) => ({
+            ...event,
+            timestamp: new Date(event.timestamp)
+          }));
+          setAllEvents(eventsWithDates);
+        }
+      } catch (error) {
+        console.error("Erro no polling:", error);
+      }
     }, 2000); // 2 segundos
 
     return () => clearInterval(pollingInterval);
-  }, [isLoading, fetchEmployees, fetchEvents]);
+  }, [isLoading]); // Apenas isLoading como dependência
 
   const handleLogin = (employee: Employee) => {
     if (employee.id === ADMIN_USER.id) {
