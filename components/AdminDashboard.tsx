@@ -286,6 +286,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }, [allEvents, startDate, endDate, selectedEmployeeId]);
 
     const periodSummary = useMemo(() => {
+        console.log('[DEBUG] Calculando periodSummary');
+        console.log('[DEBUG] filteredEvents:', filteredEvents);
+        console.log('[DEBUG] filteredEvents.length:', filteredEvents.length);
+        
         const employeeGroups: Record<number, StoredClockEvent[]> = {};
         
         filteredEvents.forEach(event => {
@@ -311,7 +315,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         let totalPayment = 0;
 
         Object.values(dailyGroups).forEach(dayEvents => {
+            console.log('[DEBUG] dayEvents:', dayEvents);
             const details = calculateWorkDetails(dayEvents);
+            console.log('[DEBUG] details:', details);
             if (details.status === 'complete') {
                 totalNormal += details.normal;
                 totalExtra += details.extra;
