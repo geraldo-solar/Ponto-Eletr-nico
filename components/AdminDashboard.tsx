@@ -779,4 +779,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     );
 };
 
-export default React.memo(AdminDashboard);
+// Comparação customizada para evitar re-renders desnecessários
+const arePropsEqual = (prevProps: AdminDashboardProps, nextProps: AdminDashboardProps) => {
+  // Compara employees por referência (se for o mesmo array, não re-renderiza)
+  if (prevProps.employees !== nextProps.employees) return false;
+  
+  // Compara allEvents pelo ID do último evento
+  const prevLastId = prevProps.allEvents.length > 0 ? prevProps.allEvents[prevProps.allEvents.length - 1].id : null;
+  const nextLastId = nextProps.allEvents.length > 0 ? nextProps.allEvents[nextProps.allEvents.length - 1].id : null;
+  
+  if (prevLastId !== nextLastId || prevProps.allEvents.length !== nextProps.allEvents.length) {
+    return false; // Eventos mudaram, precisa re-renderizar
+  }
+  
+  // Demais props são funções que não mudam
+  return true; // Props iguais, não re-renderiza
+};
+
+export default React.memo(AdminDashboard, arePropsEqual);
