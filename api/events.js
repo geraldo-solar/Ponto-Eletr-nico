@@ -1,6 +1,4 @@
-import { kv } from '@vercel/kv';
-
-const EVENTS_KEY = 'ponto:events';
+import { sql } from '@vercel/postgres';
 
 export default async function handler(req, res) {
   // Configurar CORS
@@ -15,77 +13,83 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       // Obter todos os eventos
-      let events = await kv.get(EVENTS_KEY);
+      const { rows } = await sql`
+        SELECT id, employee_id as "employeeId", employee_name as "employeeName", type, timestamp
+        FROM events 
+        ORDER BY timestamp ASC
+      `;
       
-      if (!events) {
-        events = [];
-        await kv.set(EVENTS_KEY, events);
-      }
-
-      return res.status(200).json(events);
+      return res.status(200).json(rows);
     }
 
     if (req.method === 'POST') {
       // Adicionar novo evento
-      const newEvent = req.body;
+      const { employeeId, employeeName, type, timestamp } = req.body;
       
-      let events = await kv.get(EVENTS_KEY) || [];
-      
-      // Gerar ID único baseado em timestamp
-      const eventWithId = {
-        ...newEvent,
-        id: newEvent.id || Date.now(),
-        timestamp: newEvent.timestamp || new Date().toISOString()
-      };
-      
-      // Verificar duplicatas
-      const isDuplicate = events.some(event => 
-        event.employeeId === eventWithId.employeeId &&
-        event.type === eventWithId.type &&
-        new Date(event.timestamp).getTime() === new Date(eventWithId.timestamp).getTime()
-      );
+      if (!employeeId || !employeeName || !type || !timestamp) {
+        return res.status(400).json({ error: 'Campos obrigatórios: employeeId, employeeName, type, timestamp' });
+      }
 
-      if (isDuplicate) {
+      // Verificar duplicatas (mesmo funcionário, mesmo tipo, mesmo timestamp)
+      const { rows: existing } = await sql`
+        SELECT id FROM events 
+        WHERE employee_id = ${employeeId} 
+        AND type = ${type} 
+        AND timestamp = ${timestamp}
+      `;
+
+      if (existing.length > 0) {
         return res.status(400).json({ error: 'Evento duplicado' });
       }
-      
-      events.push(eventWithId);
-      
-      // Ordenar por timestamp
-      events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-      
-      await kv.set(EVENTS_KEY, events);
 
-      return res.status(201).json({ success: true, event: eventWithId });
+      const { rows } = await sql`
+        INSERT INTO events (employee_id, employee_name, type, timestamp)
+        VALUES (${employeeId}, ${employeeName}, ${type}, ${timestamp})
+        RETURNING id, employee_id as "employeeId", employee_name as "employeeName", type, timestamp
+      `;
+
+      return res.status(201).json({ success: true, event: rows[0] });
     }
 
     if (req.method === 'PUT') {
       // Atualizar evento existente (editar timestamp)
       const { id, timestamp } = req.body;
       
-      let events = await kv.get(EVENTS_KEY) || [];
-      
-      events = events.map(event => 
-        event.id === id ? { ...event, timestamp } : event
-      );
-      
-      // Reordenar após atualização
-      events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-      
-      await kv.set(EVENTS_KEY, events);
+      if (!id || !timestamp) {
+        return res.status(400).json({ error: 'Campos obrigatórios: id, timestamp' });
+      }
 
-      return res.status(200).json({ success: true });
+      const { rows } = await sql`
+        UPDATE events 
+        SET timestamp = ${timestamp}
+        WHERE id = ${id}
+        RETURNING id, employee_id as "employeeId", employee_name as "employeeName", type, timestamp
+      `;
+
+      if (rows.length === 0) {
+        return res.status(404).json({ error: 'Evento não encontrado' });
+      }
+
+      return res.status(200).json({ success: true, event: rows[0] });
     }
 
     if (req.method === 'DELETE') {
       // Deletar evento
       const { id } = req.query;
       
-      let events = await kv.get(EVENTS_KEY) || [];
-      
-      events = events.filter(event => event.id !== parseInt(id));
-      
-      await kv.set(EVENTS_KEY, events);
+      if (!id) {
+        return res.status(400).json({ error: 'ID é obrigatório' });
+      }
+
+      const { rows } = await sql`
+        DELETE FROM events 
+        WHERE id = ${id}
+        RETURNING id
+      `;
+
+      if (rows.length === 0) {
+        return res.status(404).json({ error: 'Evento não encontrado' });
+      }
 
       return res.status(200).json({ success: true, deletedId: id });
     }

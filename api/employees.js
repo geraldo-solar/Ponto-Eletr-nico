@@ -1,15 +1,4 @@
-import { kv } from '@vercel/kv';
-
-const EMPLOYEES_KEY = 'ponto:employees';
-const ADMIN_USER = { id: 999, name: 'Administrador', pin: '7531', phone: '' };
-
-// Inicializar funcionários padrão se não existirem
-const INITIAL_EMPLOYEES = [
-  { id: 1, name: 'Ana Silva', pin: '1234', phone: '11987654321' },
-  { id: 2, name: 'Bruno Costa', pin: '5678', phone: '21987654321' },
-  { id: 3, name: 'Carla Dias', pin: '4321', phone: '31987654321' },
-  { id: 4, name: 'Daniel Alves', pin: '8765', phone: '41987654321' },
-];
+import { sql } from '@vercel/postgres';
 
 export default async function handler(req, res) {
   // Configurar CORS
@@ -23,58 +12,93 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      // Obter funcionários
-      let employees = await kv.get(EMPLOYEES_KEY);
+      // Obter todos os funcionários
+      const { rows } = await sql`
+        SELECT id, name, pin, phone 
+        FROM employees 
+        ORDER BY id ASC
+      `;
       
-      // Se não existir, inicializar com dados padrão
-      if (!employees) {
-        employees = INITIAL_EMPLOYEES;
-        await kv.set(EMPLOYEES_KEY, employees);
-      }
-
-      return res.status(200).json(employees);
+      return res.status(200).json(rows);
     }
 
     if (req.method === 'POST') {
       // Adicionar novo funcionário
-      const newEmployee = req.body;
+      const { name, pin, phone } = req.body;
       
-      let employees = await kv.get(EMPLOYEES_KEY) || INITIAL_EMPLOYEES;
-      
-      // Gerar novo ID
-      const newId = employees.length > 0 ? Math.max(...employees.map(e => e.id)) + 1 : 1;
-      const employeeWithId = { ...newEmployee, id: newId };
-      
-      employees.push(employeeWithId);
-      await kv.set(EMPLOYEES_KEY, employees);
+      if (!name || !pin || !phone) {
+        return res.status(400).json({ error: 'Campos obrigatórios: name, pin, phone' });
+      }
 
-      return res.status(201).json({ success: true, employee: employeeWithId });
+      // Verificar se PIN já existe
+      const { rows: existing } = await sql`
+        SELECT id FROM employees WHERE pin = ${pin}
+      `;
+
+      if (existing.length > 0) {
+        return res.status(400).json({ error: 'PIN já cadastrado' });
+      }
+
+      const { rows } = await sql`
+        INSERT INTO employees (name, pin, phone)
+        VALUES (${name}, ${pin}, ${phone})
+        RETURNING id, name, pin, phone
+      `;
+
+      return res.status(201).json({ success: true, employee: rows[0] });
     }
 
     if (req.method === 'PUT') {
       // Atualizar funcionário existente
-      const updatedEmployee = req.body;
+      const { id, name, pin, phone } = req.body;
       
-      let employees = await kv.get(EMPLOYEES_KEY) || INITIAL_EMPLOYEES;
-      
-      employees = employees.map(emp => 
-        emp.id === updatedEmployee.id ? updatedEmployee : emp
-      );
-      
-      await kv.set(EMPLOYEES_KEY, employees);
+      if (!id || !name || !pin || !phone) {
+        return res.status(400).json({ error: 'Campos obrigatórios: id, name, pin, phone' });
+      }
 
-      return res.status(200).json({ success: true, employee: updatedEmployee });
+      // Verificar se PIN já existe em outro funcionário
+      const { rows: existing } = await sql`
+        SELECT id FROM employees WHERE pin = ${pin} AND id != ${id}
+      `;
+
+      if (existing.length > 0) {
+        return res.status(400).json({ error: 'PIN já cadastrado para outro funcionário' });
+      }
+
+      const { rows } = await sql`
+        UPDATE employees 
+        SET name = ${name}, pin = ${pin}, phone = ${phone}
+        WHERE id = ${id}
+        RETURNING id, name, pin, phone
+      `;
+
+      if (rows.length === 0) {
+        return res.status(404).json({ error: 'Funcionário não encontrado' });
+      }
+
+      return res.status(200).json({ success: true, employee: rows[0] });
     }
 
     if (req.method === 'DELETE') {
       // Deletar funcionário
       const { id } = req.query;
       
-      let employees = await kv.get(EMPLOYEES_KEY) || INITIAL_EMPLOYEES;
+      if (!id) {
+        return res.status(400).json({ error: 'ID é obrigatório' });
+      }
+
+      // Deletar eventos associados (CASCADE já faz isso, mas vamos garantir)
+      await sql`DELETE FROM events WHERE employee_id = ${id}`;
       
-      employees = employees.filter(emp => emp.id !== parseInt(id));
-      
-      await kv.set(EMPLOYEES_KEY, employees);
+      const { rows } = await sql`
+        DELETE FROM employees 
+        WHERE id = ${id}
+        RETURNING id
+      `;
+
+      if (rows.length === 0) {
+        return res.status(404).json({ error: 'Funcionário não encontrado' });
+      }
 
       return res.status(200).json({ success: true, deletedId: id });
     }
