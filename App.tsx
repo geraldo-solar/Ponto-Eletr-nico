@@ -70,7 +70,13 @@ const App: React.FC = () => {
         
         if (employeesRes.ok) {
           const employeesData = await employeesRes.json();
-          setEmployees(employeesData);
+          // Só atualiza se houve mudança
+          setEmployees(prev => {
+            if (JSON.stringify(prev) === JSON.stringify(employeesData)) {
+              return prev; // Retorna o mesmo objeto para evitar re-render
+            }
+            return employeesData;
+          });
         }
         
         if (eventsRes.ok) {
@@ -79,12 +85,18 @@ const App: React.FC = () => {
             ...event,
             timestamp: new Date(event.timestamp)
           }));
-          setAllEvents(eventsWithDates);
+          // Só atualiza se houve mudança
+          setAllEvents(prev => {
+            if (prev.length === eventsWithDates.length) {
+              return prev; // Se mesmo tamanho, provavelmente não mudou
+            }
+            return eventsWithDates;
+          });
         }
       } catch (error) {
         console.error("Erro no polling:", error);
       }
-    }, 2000); // 2 segundos
+    }, 5000); // 5 segundos (reduzido para diminuir re-renders)
 
     return () => clearInterval(pollingInterval);
   }, [isLoading, loggedInEmployee]); // Polling apenas quando logado
