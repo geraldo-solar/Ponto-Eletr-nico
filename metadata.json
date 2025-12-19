@@ -1,0 +1,5 @@
+{
+  "name": "Ponto Eletrônico",
+  "description": "Um sistema de ponto eletrônico para funcionários com login via PIN. Permite registrar entrada, início e fim de intervalo, e saída.",
+  "requestFramePermissions": []
+}
