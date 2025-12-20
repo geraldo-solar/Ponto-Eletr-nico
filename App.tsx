@@ -158,7 +158,9 @@ const App: React.FC = () => {
   };
 
   const handleAddManualEvent = async (details: { employeeId: number; type: ClockType; timestamp: Date; }): Promise<boolean> => {
+    console.log('[handleAddManualEvent] Iniciando com details:', details);
     const employee = employees.find(e => e.id === details.employeeId);
+    console.log('[handleAddManualEvent] Funcionário encontrado:', employee);
     if (!employee) {
       console.error("Funcionário não encontrado para adicionar evento manual");
       return false;
@@ -171,6 +173,7 @@ const App: React.FC = () => {
         type: details.type,
         timestamp: details.timestamp.toISOString(),
       };
+      console.log('[handleAddManualEvent] Enviando para API:', newEvent);
 
       const response = await fetch(`${API_BASE_URL}/api/events`, {
         method: 'POST',
@@ -179,11 +182,12 @@ const App: React.FC = () => {
       });
 
       if (response.ok) {
+        console.log('[handleAddManualEvent] Sucesso! Status:', response.status);
         await fetchEvents();
         return true;
       } else {
         const error = await response.json();
-        console.error("Erro ao adicionar evento:", error);
+        console.error('[handleAddManualEvent] Erro da API:', response.status, error);
         return false;
       }
     } catch (error) {
