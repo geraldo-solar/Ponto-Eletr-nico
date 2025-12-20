@@ -167,11 +167,22 @@ const App: React.FC = () => {
     }
 
     try {
+      // Converter horário local de Brasília para UTC mantendo os mesmos números
+      // Ex: 18:00 BRT deve ser salvo como 18:00 UTC (não 21:00 UTC)
+      const localDate = details.timestamp;
+      const year = localDate.getFullYear();
+      const month = String(localDate.getMonth() + 1).padStart(2, '0');
+      const day = String(localDate.getDate()).padStart(2, '0');
+      const hours = String(localDate.getHours()).padStart(2, '0');
+      const minutes = String(localDate.getMinutes()).padStart(2, '0');
+      const seconds = String(localDate.getSeconds()).padStart(2, '0');
+      const utcTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
+      
       const newEvent = {
         employeeId: employee.id,
         employeeName: employee.name,
         type: details.type,
-        timestamp: details.timestamp.toISOString(),
+        timestamp: utcTimestamp,
       };
       console.log('[handleAddManualEvent] Enviando para API:', newEvent);
 
