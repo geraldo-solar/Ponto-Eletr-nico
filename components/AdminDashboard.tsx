@@ -299,6 +299,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         });
 
         if (success) {
+            console.log('[STICKY FORM] Antes:', { manualEmployeeId, manualDate, manualTime, manualType });
             alert('Batida lançada com sucesso!');
             // Manter funcionário e data, apenas avançar o horário e tipo
             const [hours, minutes] = manualTime.split(':');
@@ -319,6 +320,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             } else {
                 setManualType(ClockType.Entrada);
             }
+            console.log('[STICKY FORM] Depois: Funcionário e data mantidos, horário e tipo avançados');
         } else {
             alert('Erro ao lançar batida (possível duplicata)');
         }
