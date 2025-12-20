@@ -49,11 +49,11 @@ export default async function handler(req, res) {
           VALUES (
             ${emp.id}, 
             ${emp.name}, 
-            ${emp.phone || ''}, 
+            ${emp.phone || null}, 
             ${emp.pin}, 
-            ${emp.cpf || ''}, 
-            ${emp.funcao || ''}, 
-            ${emp.pix || ''}
+            ${emp.cpf || null}, 
+            ${emp.funcao || null}, 
+            ${emp.pix || null}
           )
           ON CONFLICT (id) DO UPDATE SET
             name = EXCLUDED.name,
