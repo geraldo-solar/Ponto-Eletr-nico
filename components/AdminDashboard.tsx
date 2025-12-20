@@ -322,6 +322,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         console.log('[DEBUG] filteredEvents:', filteredEvents);
         console.log('[DEBUG] filteredEvents.length:', filteredEvents.length);
         
+        // Agrupar por funcionário primeiro
         const employeeGroups: Record<number, StoredClockEvent[]> = {};
         
         filteredEvents.forEach(event => {
@@ -331,8 +332,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             employeeGroups[event.employeeId].push(event);
         });
 
-        const dailyGroups: Record<string, StoredClockEvent[]> = {};
+        let totalNormal = 0;
+        let totalExtra = 0;
+        let totalPayment = 0;
+
+        // Para cada funcionário, agrupar por dia e calcular
         Object.values(employeeGroups).forEach(empEvents => {
+            // Agrupar eventos deste funcionário por dia
+            const dailyGroups: Record<string, StoredClockEvent[]> = {};
             empEvents.forEach(event => {
                 const dateKey = new Date(event.timestamp).toISOString().split('T')[0];
                 if (!dailyGroups[dateKey]) {
@@ -340,21 +347,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 }
                 dailyGroups[dateKey].push(event);
             });
-        });
 
-        let totalNormal = 0;
-        let totalExtra = 0;
-        let totalPayment = 0;
-
-        Object.values(dailyGroups).forEach(dayEvents => {
-            console.log('[DEBUG] dayEvents:', dayEvents);
-            const details = calculateWorkDetails(dayEvents);
-            console.log('[DEBUG] details:', details);
-            if (details.status === 'complete') {
-                totalNormal += details.normal;
-                totalExtra += details.extra;
-                totalPayment += details.payment.total;
-            }
+            // Calcular total para cada dia deste funcionário
+            Object.values(dailyGroups).forEach(dayEvents => {
+                console.log('[DEBUG] dayEvents:', dayEvents);
+                const details = calculateWorkDetails(dayEvents);
+                console.log('[DEBUG] details:', details);
+                if (details.status === 'complete') {
+                    totalNormal += details.normal;
+                    totalExtra += details.extra;
+                    totalPayment += details.payment.total;
+                }
+            });
         });
 
         return {
