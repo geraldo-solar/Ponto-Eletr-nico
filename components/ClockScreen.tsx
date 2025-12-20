@@ -5,6 +5,15 @@ import { ClockType } from '../types';
 import Clock from './Clock';
 import { ClockInIcon, CoffeeIcon, LogoutIcon, PlayIcon, StopIcon } from './Icons';
 
+// Função para formatar hora interpretando timestamp UTC como horário local de Brasília
+const formatBrasiliaTime = (timestamp: string | Date): string => {
+    const date = new Date(timestamp);
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+};
+
 interface ClockScreenProps {
   employee: Employee;
   onLogout: () => void;
@@ -69,7 +78,7 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
     const todayEvents = useMemo(() => {
         return [...events]
             .filter(e => new Date(e.timestamp).toDateString() === new Date().toDateString())
-            .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()); // Ordem crescente (mais antigo primeiro)
     }, [events]);
 
     return (
@@ -116,7 +125,7 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
                                 {todayEvents.map((event, index) => (
                                     <li key={index} className="flex justify-between items-center bg-emerald-800 p-2 rounded-md text-sm">
                                         <span className="font-medium text-gray-300">{event.type}</span>
-                                        <span className="font-mono text-amber-400">{event.timestamp.toLocaleTimeString('pt-BR')}</span>
+                                        <span className="font-mono text-amber-400">{formatBrasiliaTime(event.timestamp)}</span>
                                     </li>
                                 ))}
                             </ul>
