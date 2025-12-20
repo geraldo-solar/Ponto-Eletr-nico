@@ -300,27 +300,35 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         if (success) {
             console.log('[STICKY FORM] Antes:', { manualEmployeeId, manualDate, manualTime, manualType });
-            alert('Batida lançada com sucesso!');
+            
             // Manter funcionário e data, apenas avançar o horário e tipo
+            // IMPORTANTE: Fazer TODAS as atualizações de estado ANTES do alert
             const [hours, minutes] = manualTime.split(':');
             const newHour = parseInt(hours);
             const newMinutes = parseInt(minutes);
             
             // Avançar 1 hora
             const nextHour = (newHour + 1) % 24;
-            setManualTime(`${String(nextHour).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}`);
+            const newTime = `${String(nextHour).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}`;
             
-            // Avançar tipo automaticamente
+            // Determinar próximo tipo
+            let newType = ClockType.Entrada;
             if (manualType === ClockType.Entrada) {
-                setManualType(ClockType.InicioIntervalo);
+                newType = ClockType.InicioIntervalo;
             } else if (manualType === ClockType.InicioIntervalo) {
-                setManualType(ClockType.FimIntervalo);
+                newType = ClockType.FimIntervalo;
             } else if (manualType === ClockType.FimIntervalo) {
-                setManualType(ClockType.Saida);
-            } else {
-                setManualType(ClockType.Entrada);
+                newType = ClockType.Saida;
             }
-            console.log('[STICKY FORM] Depois: Funcionário e data mantidos, horário e tipo avançados');
+            
+            // Atualizar estados ANTES do alert
+            setManualTime(newTime);
+            setManualType(newType);
+            
+            console.log('[STICKY FORM] Novos valores:', { manualEmployeeId, manualDate, newTime, newType });
+            
+            // Alert por último
+            alert('Batida lançada com sucesso!');
         } else {
             alert('Erro ao lançar batida (possível duplicata)');
         }
