@@ -31,8 +31,8 @@ export default async function handler(req, res) {
       // Adicionar novo funcionário
       const { name, pin, phone, cpf, funcao, pix } = req.body;
       
-      if (!name || !pin || !phone) {
-        return res.status(400).json({ error: 'Campos obrigatórios: name, pin, phone' });
+      if (!name || !pin) {
+        return res.status(400).json({ error: 'Campos obrigatórios: name, pin' });
       }
 
       // Verificar se PIN já existe
@@ -57,8 +57,8 @@ export default async function handler(req, res) {
       // Atualizar funcionário existente
       const { id, name, pin, phone, cpf, funcao, pix } = req.body;
       
-      if (!id || !name || !pin || !phone) {
-        return res.status(400).json({ error: 'Campos obrigatórios: id, name, pin, phone' });
+      if (!id || !name || !pin) {
+        return res.status(400).json({ error: 'Campos obrigatórios: id, name, pin' });
       }
 
       // Verificar se PIN já existe em outro funcionário
