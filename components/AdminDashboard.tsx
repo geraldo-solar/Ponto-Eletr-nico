@@ -371,12 +371,70 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             return;
         }
 
-        const csvHeader = 'Data,Horário,Funcionário,Tipo\n';
-        const csvRows = filteredEvents.map(event => {
-            // Usar fuso horário de Brasília (GMT-3) para garantir consistência
-            const dateStr = formatBrasiliaDate(event.timestamp);
-            const timeStr = formatBrasiliaTime(event.timestamp);
-            return `${dateStr},${timeStr},${event.employeeName},${event.type}`;
+        // Agrupar eventos por funcionário
+        const employeeGroups: Record<number, StoredClockEvent[]> = {};
+        filteredEvents.forEach(event => {
+            if (!employeeGroups[event.employeeId]) {
+                employeeGroups[event.employeeId] = [];
+            }
+            employeeGroups[event.employeeId].push(event);
+        });
+
+        // Calcular resumo por funcionário
+        const employeeSummaries: Array<{
+            name: string;
+            funcao: string;
+            normalHours: string;
+            extraHours: string;
+            totalHours: string;
+            payment: string;
+        }> = [];
+
+        Object.entries(employeeGroups).forEach(([employeeId, empEvents]) => {
+            // Agrupar por dia
+            const dailyGroups: Record<string, StoredClockEvent[]> = {};
+            empEvents.forEach(event => {
+                const dateKey = new Date(event.timestamp).toISOString().split('T')[0];
+                if (!dailyGroups[dateKey]) {
+                    dailyGroups[dateKey] = [];
+                }
+                dailyGroups[dateKey].push(event);
+            });
+
+            let totalNormal = 0;
+            let totalExtra = 0;
+            let totalPayment = 0;
+
+            Object.values(dailyGroups).forEach(dailyEvents => {
+                const details = calculateWorkDetails(dailyEvents);
+                if (details.status === 'complete') {
+                    totalNormal += details.normal;
+                    totalExtra += details.extra;
+                    totalPayment += details.payment.total;
+                }
+            });
+
+            // Buscar função do funcionário
+            const employee = employees.find(e => e.id === parseInt(employeeId));
+            const funcao = employee?.funcao || '';
+
+            employeeSummaries.push({
+                name: empEvents[0].employeeName,
+                funcao: funcao,
+                normalHours: formatMilliseconds(totalNormal),
+                extraHours: formatMilliseconds(totalExtra),
+                totalHours: formatMilliseconds(totalNormal + totalExtra),
+                payment: formatCurrency(totalPayment)
+            });
+        });
+
+        // Ordenar por nome
+        employeeSummaries.sort((a, b) => a.name.localeCompare(b.name));
+
+        // Criar CSV com resumo por funcionário
+        const csvHeader = 'Funcionário,Função,Horas Normais,Horas Extras,Total de Horas,Valor a Pagar\n';
+        const csvRows = employeeSummaries.map(summary => {
+            return `${summary.name},${summary.funcao},${summary.normalHours},${summary.extraHours},${summary.totalHours},${summary.payment}`;
         }).join('\n');
 
         const csvContent = csvHeader + csvRows;
@@ -384,7 +442,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `relatorio_ponto_${startDate}_${endDate}.csv`;
+        link.download = `resumo_funcionarios_${startDate}_${endDate}.csv`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
