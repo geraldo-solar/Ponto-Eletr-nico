@@ -72,6 +72,47 @@ interface WorkDetails {
     status: 'complete' | 'incomplete' | 'error' | 'no_entry';
 }
 
+/**
+ * Agrupa eventos por turnos de trabalho.
+ * Um turno começa com uma Entrada e termina com uma Saída.
+ * Pode conter múltiplos intervalos e atravessar a meia-noite.
+ */
+const groupEventsByShifts = (events: StoredClockEvent[]): StoredClockEvent[][] => {
+    // Ordenar eventos por timestamp
+    const sorted = [...events].sort((a, b) => 
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    const shifts: StoredClockEvent[][] = [];
+    let currentShift: StoredClockEvent[] = [];
+    let shiftStarted = false;
+
+    for (const event of sorted) {
+        if (event.type === ClockType.Entrada && !shiftStarted) {
+            // Início de um novo turno
+            currentShift = [event];
+            shiftStarted = true;
+        } else if (shiftStarted) {
+            // Adicionar evento ao turno atual
+            currentShift.push(event);
+            
+            if (event.type === ClockType.Saida) {
+                // Fim do turno
+                shifts.push(currentShift);
+                currentShift = [];
+                shiftStarted = false;
+            }
+        }
+    }
+
+    // Se houver um turno incompleto (sem saída), adicionar também
+    if (currentShift.length > 0) {
+        shifts.push(currentShift);
+    }
+
+    return shifts;
+};
+
 const formatMilliseconds = (totalMillis: number): string => {
     if (totalMillis < 0) return "Erro";
     const hours = Math.floor(totalMillis / (1000 * 60 * 60));
@@ -461,22 +502,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         let totalExtra = 0;
         let totalPayment = 0;
 
-        // Para cada funcionário, agrupar por dia e calcular
+        // Para cada funcionário, agrupar por turnos e calcular
         Object.values(employeeGroups).forEach(empEvents => {
-            // Agrupar eventos deste funcionário por dia
-            const dailyGroups: Record<string, StoredClockEvent[]> = {};
-            empEvents.forEach(event => {
-                const dateKey = new Date(event.timestamp).toISOString().split('T')[0];
-                if (!dailyGroups[dateKey]) {
-                    dailyGroups[dateKey] = [];
-                }
-                dailyGroups[dateKey].push(event);
-            });
+            // Agrupar eventos deste funcionário por turnos
+            const shifts = groupEventsByShifts(empEvents);
 
-            // Calcular total para cada dia deste funcionário
-            Object.values(dailyGroups).forEach(dayEvents => {
-                console.log('[DEBUG] dayEvents:', dayEvents);
-                const details = calculateWorkDetails(dayEvents);
+            // Calcular total para cada turno deste funcionário
+            shifts.forEach(shiftEvents => {
+                console.log('[DEBUG] shiftEvents:', shiftEvents);
+                const details = calculateWorkDetails(shiftEvents);
                 console.log('[DEBUG] details:', details);
                 if (details.status === 'complete') {
                     totalNormal += details.normal;
@@ -520,22 +554,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }> = [];
 
         Object.entries(employeeGroups).forEach(([employeeId, empEvents]) => {
-            // Agrupar por dia
-            const dailyGroups: Record<string, StoredClockEvent[]> = {};
-            empEvents.forEach(event => {
-                const dateKey = new Date(event.timestamp).toISOString().split('T')[0];
-                if (!dailyGroups[dateKey]) {
-                    dailyGroups[dateKey] = [];
-                }
-                dailyGroups[dateKey].push(event);
-            });
+            // Agrupar por turnos
+            const shifts = groupEventsByShifts(empEvents);
 
             let totalNormal = 0;
             let totalExtra = 0;
             let totalPayment = 0;
 
-            Object.values(dailyGroups).forEach(dailyEvents => {
-                const details = calculateWorkDetails(dailyEvents);
+            shifts.forEach(shiftEvents => {
+                const details = calculateWorkDetails(shiftEvents);
                 if (details.status === 'complete') {
                     totalNormal += details.normal;
                     totalExtra += details.extra;
