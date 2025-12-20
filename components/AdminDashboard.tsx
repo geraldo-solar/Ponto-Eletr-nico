@@ -174,7 +174,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [newEmployee, setNewEmployee] = useState({ name: '', pin: '', phone: '', cpf: '', funcao: '', pix: '' });
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     const [importMessage, setImportMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+    const [restoreMessage, setRestoreMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const jsonBackupInputRef = useRef<HTMLInputElement>(null);
     const [showAddBreakModal, setShowAddBreakModal] = useState<{employeeId: number, employeeName: string, date: Date} | null>(null);
     const [editingEvent, setEditingEvent] = useState<StoredClockEvent | null>(null);
 
@@ -301,6 +303,72 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 if (event.target) event.target.value = '';
             } catch (error: any) {
                 showMessage(error.message || "Erro ao processar o arquivo CSV.", 'error');
+                if (event.target) event.target.value = '';
+            }
+        };
+        reader.onerror = () => {
+            showMessage("Erro ao ler o arquivo.", 'error');
+            if (event.target) event.target.value = '';
+        };
+        reader.readAsText(file);
+    };
+
+    const handleRestoreBackup = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const showMessage = (text: string, type: 'success' | 'error') => {
+            setRestoreMessage({ text, type });
+            setTimeout(() => setRestoreMessage(null), 10000);
+        };
+
+        // Confirmar com o usuário
+        const confirmed = confirm(
+            '⚠️ ATENÇÃO: Esta ação irá SUBSTITUIR TODOS os dados atuais (funcionários e batidas) pelos dados do backup.\n\nDeseja continuar?'
+        );
+
+        if (!confirmed) {
+            if (event.target) event.target.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const text = e.target?.result as string;
+                const backupData = JSON.parse(text);
+
+                if (!backupData.employees || !backupData.events) {
+                    throw new Error("Arquivo de backup inválido. Esperado: {employees: [], events: []}");
+                }
+
+                showMessage('🔄 Restaurando backup... Aguarde.', 'success');
+
+                // Chamar API para restaurar backup
+                const response = await fetch('/api/restore-backup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(backupData)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erro ao restaurar backup');
+                }
+
+                const result = await response.json();
+                
+                showMessage(
+                    `✅ Backup restaurado com sucesso! ${result.employeesCount} funcionários e ${result.eventsCount} batidas importados.`,
+                    'success'
+                );
+
+                // Atualizar dados na interface
+                await onRefresh();
+
+                if (event.target) event.target.value = '';
+            } catch (error: any) {
+                showMessage(error.message || "Erro ao processar o arquivo de backup.", 'error');
                 if (event.target) event.target.value = '';
             }
         };
@@ -839,6 +907,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {importMessage && (
                         <div className={`mt-2 text-center text-sm font-semibold p-2 rounded-md ${importMessage.type === 'success' ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
                             {importMessage.text}
+                        </div>
+                    )}
+                </div>
+
+                <div className="pt-4 border-t border-gray-600">
+                    <h4 className="text-lg font-semibold mb-2">Restaurar Backup Completo</h4>
+                    <p className="text-sm text-gray-400 mb-2">
+                        Restaure um backup completo (funcionários + batidas) de um arquivo JSON. <strong className="text-amber-400">⚠️ Isso irá substituir todos os dados atuais!</strong>
+                    </p>
+                    <button
+                        onClick={() => jsonBackupInputRef.current?.click()}
+                        className="w-full bg-blue-700 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                        <UploadIcon />
+                        Restaurar Backup JSON
+                    </button>
+                    <input
+                        type="file"
+                        ref={jsonBackupInputRef}
+                        onChange={handleRestoreBackup}
+                        accept=".json"
+                        className="hidden"
+                    />
+                    {restoreMessage && (
+                        <div className={`mt-2 text-center text-sm font-semibold p-2 rounded-md ${restoreMessage.type === 'success' ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
+                            {restoreMessage.text}
                         </div>
                     )}
                 </div>
