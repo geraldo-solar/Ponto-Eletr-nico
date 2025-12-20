@@ -432,12 +432,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         employeeSummaries.sort((a, b) => a.name.localeCompare(b.name));
 
         // Criar CSV com resumo por funcionário
+        const periodLine = `Período:,${startDate} a ${endDate}\n\n`;
         const csvHeader = 'Funcionário,Função,Horas Normais,Horas Extras,Total de Horas,Valor a Pagar\n';
         const csvRows = employeeSummaries.map(summary => {
             return `${summary.name},${summary.funcao},${summary.normalHours},${summary.extraHours},${summary.totalHours},${summary.payment}`;
         }).join('\n');
 
-        const csvContent = csvHeader + csvRows;
+        const csvContent = periodLine + csvHeader + csvRows;
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
