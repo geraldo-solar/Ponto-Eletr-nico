@@ -76,6 +76,12 @@ export default async function handler(req, res) {
     
     for (const evt of events) {
       try {
+        // Validar dados do evento
+        if (!evt.id || !evt.employeeId || !evt.employeeName || !evt.type || !evt.timestamp) {
+          console.error(`[restore-backup] Evento inválido:`, evt);
+          continue;
+        }
+
         await sql`
           INSERT INTO events (id, employee_id, employee_name, type, timestamp)
           VALUES (
@@ -92,8 +98,14 @@ export default async function handler(req, res) {
             timestamp = EXCLUDED.timestamp
         `;
         eventsImported++;
+        
+        // Log a cada 100 eventos importados
+        if (eventsImported % 100 === 0) {
+          console.log(`[restore-backup] ${eventsImported} eventos importados...`);
+        }
       } catch (error) {
         console.error(`[restore-backup] Erro ao importar evento ${evt.id}:`, error.message);
+        console.error(`[restore-backup] Dados do evento:`, JSON.stringify(evt));
       }
     }
     console.log(`[restore-backup] ${eventsImported} eventos importados`);
@@ -130,7 +142,12 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('[restore-backup] Erro:', error);
-    return res.status(500).json({ error: error.message });
+    console.error('[restore-backup] Erro geral:', error);
+    console.error('[restore-backup] Stack:', error.stack);
+    return res.status(500).json({ 
+      error: error.message,
+      details: error.stack,
+      type: error.name
+    });
   }
 }

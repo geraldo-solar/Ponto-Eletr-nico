@@ -353,6 +353,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 if (!response.ok) {
                     const error = await response.json();
+                    console.error('[handleRestoreBackup] Erro da API:', error);
                     throw new Error(error.error || 'Erro ao restaurar backup');
                 }
 
