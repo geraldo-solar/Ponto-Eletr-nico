@@ -300,6 +300,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         if (success) {
             alert('Batida lançada com sucesso!');
+            // Manter funcionário e data, apenas avançar o horário e tipo
+            const [hours, minutes] = manualTime.split(':');
+            const newHour = parseInt(hours);
+            const newMinutes = parseInt(minutes);
+            
+            // Avançar 1 hora
+            const nextHour = (newHour + 1) % 24;
+            setManualTime(`${String(nextHour).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}`);
+            
+            // Avançar tipo automaticamente
+            if (manualType === ClockType.Entrada) {
+                setManualType(ClockType.InicioIntervalo);
+            } else if (manualType === ClockType.InicioIntervalo) {
+                setManualType(ClockType.FimIntervalo);
+            } else if (manualType === ClockType.FimIntervalo) {
+                setManualType(ClockType.Saida);
+            } else {
+                setManualType(ClockType.Entrada);
+            }
         } else {
             alert('Erro ao lançar batida (possível duplicata)');
         }
