@@ -176,6 +176,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [importMessage, setImportMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [showAddBreakModal, setShowAddBreakModal] = useState<{employeeId: number, employeeName: string, date: Date} | null>(null);
+    const [editingEvent, setEditingEvent] = useState<StoredClockEvent | null>(null);
 
     // Estados para lançamento manual
     const [manualEmployeeId, setManualEmployeeId] = useState<string>('');
@@ -561,9 +562,116 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         );
     };
 
+    const EditEventModal = () => {
+        if (!editingEvent) return null;
+        
+        const eventDate = new Date(editingEvent.timestamp);
+        const [editDate, setEditDate] = useState(eventDate.toISOString().split('T')[0]);
+        const [editTime, setEditTime] = useState(`${String(eventDate.getUTCHours()).padStart(2, '0')}:${String(eventDate.getUTCMinutes()).padStart(2, '0')}`);
+        const [editType, setEditType] = useState(editingEvent.type);
+
+        const handleSaveEdit = async () => {
+            const [hours, minutes] = editTime.split(':');
+            const newTimestamp = `${editDate}T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:00.000Z`;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/events`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: editingEvent.id,
+                        type: editType,
+                        timestamp: newTimestamp
+                    })
+                });
+
+                if (response.ok) {
+                    alert('Evento atualizado com sucesso!');
+                    setEditingEvent(null);
+                    onRefresh();
+                } else {
+                    alert('Erro ao atualizar evento');
+                }
+            } catch (error) {
+                console.error('Erro ao atualizar evento:', error);
+                alert('Erro ao atualizar evento');
+            }
+        };
+
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+                <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
+                    <h3 className="text-xl font-bold text-amber-400 mb-4">Editar Evento</h3>
+                    
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">Funcionário</label>
+                            <input
+                                type="text"
+                                value={editingEvent.employeeName}
+                                disabled
+                                className="w-full p-2 bg-gray-700 text-gray-400 rounded"
+                            />
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">Data</label>
+                            <input
+                                type="date"
+                                value={editDate}
+                                onChange={(e) => setEditDate(e.target.value)}
+                                className="w-full p-2 bg-gray-700 text-white rounded"
+                            />
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">Horário</label>
+                            <input
+                                type="time"
+                                value={editTime}
+                                onChange={(e) => setEditTime(e.target.value)}
+                                className="w-full p-2 bg-gray-700 text-white rounded"
+                            />
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">Tipo</label>
+                            <select
+                                value={editType}
+                                onChange={(e) => setEditType(e.target.value as ClockType)}
+                                className="w-full p-2 bg-gray-700 text-white rounded"
+                            >
+                                <option value={ClockType.Entrada}>Entrada</option>
+                                <option value={ClockType.InicioIntervalo}>Início Intervalo</option>
+                                <option value={ClockType.FimIntervalo}>Fim Intervalo</option>
+                                <option value={ClockType.Saida}>Saída</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div className="flex gap-2 mt-6">
+                        <button
+                            onClick={handleSaveEdit}
+                            className="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded"
+                        >
+                            Salvar
+                        </button>
+                        <button
+                            onClick={() => setEditingEvent(null)}
+                            className="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded"
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="space-y-6 pb-8">
             {showAddBreakModal && <AddBreakModal />}
+            {editingEvent && <EditEventModal />}
             
             <div className="text-center space-y-2">
                 <h2 className="text-3xl font-bold text-amber-400">{admin.name}</h2>
@@ -953,16 +1061,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <td className="p-2">{event.employeeName}</td>
                                         <td className="p-2">{event.type}</td>
                                         <td className="p-2 text-center">
-                                            <button
-                                                onClick={() => {
-                                                    if (confirm('Deletar este registro?')) {
-                                                        onDeleteEvent(event.id);
-                                                    }
-                                                }}
-                                                className="bg-red-600 hover:bg-red-500 p-1 rounded text-xs"
-                                            >
-                                                <DeleteIcon />
-                                            </button>
+                                            <div className="flex gap-2 justify-center">
+                                                <button
+                                                    onClick={() => setEditingEvent(event)}
+                                                    className="bg-blue-600 hover:bg-blue-500 p-1 rounded text-xs"
+                                                    title="Editar evento"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                                    </svg>
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        if (confirm('Deletar este registro?')) {
+                                                            onDeleteEvent(event.id);
+                                                        }
+                                                    }}
+                                                    className="bg-red-600 hover:bg-red-500 p-1 rounded text-xs"
+                                                    title="Deletar evento"
+                                                >
+                                                    <DeleteIcon />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

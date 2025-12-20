@@ -57,19 +57,41 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PUT') {
-      // Atualizar evento existente (editar timestamp)
-      const { id, timestamp } = req.body;
+      // Atualizar evento existente (editar timestamp e/ou type)
+      const { id, timestamp, type } = req.body;
       
-      if (!id || !timestamp) {
-        return res.status(400).json({ error: 'Campos obrigatórios: id, timestamp' });
+      if (!id) {
+        return res.status(400).json({ error: 'Campo obrigatório: id' });
       }
 
-      const { rows } = await sql`
+      // Construir query dinamicamente baseado nos campos fornecidos
+      let updateFields = [];
+      let values = [];
+      
+      if (timestamp) {
+        updateFields.push('timestamp = $' + (values.length + 1));
+        values.push(timestamp);
+      }
+      
+      if (type) {
+        updateFields.push('type = $' + (values.length + 1));
+        values.push(type);
+      }
+      
+      if (updateFields.length === 0) {
+        return res.status(400).json({ error: 'Nenhum campo para atualizar' });
+      }
+      
+      values.push(id); // ID é sempre o último parâmetro
+      
+      const query = `
         UPDATE events 
-        SET timestamp = ${timestamp}
-        WHERE id = ${id}
+        SET ${updateFields.join(', ')}
+        WHERE id = $${values.length}
         RETURNING id, employee_id as "employeeId", employee_name as "employeeName", type, timestamp
       `;
+      
+      const { rows } = await sql.query(query, values);
 
       if (rows.length === 0) {
         return res.status(404).json({ error: 'Evento não encontrado' });
