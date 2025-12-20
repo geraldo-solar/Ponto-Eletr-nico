@@ -38,9 +38,8 @@ export default async function handler(req, res) {
     await sql`DELETE FROM employees`;
     console.log('[restore-backup] Dados antigos removidos');
 
-    // Importar funcionários
+    // Importar funcionários em lote
     console.log(`[restore-backup] Importando ${employees.length} funcionários...`);
-    let employeesImported = 0;
     
     for (const emp of employees) {
       try {
@@ -63,51 +62,55 @@ export default async function handler(req, res) {
             funcao = EXCLUDED.funcao,
             pix = EXCLUDED.pix
         `;
-        employeesImported++;
       } catch (error) {
         console.error(`[restore-backup] Erro ao importar funcionário ${emp.name}:`, error.message);
       }
     }
+    
+    const employeesImported = employees.length;
     console.log(`[restore-backup] ${employeesImported} funcionários importados`);
 
-    // Importar eventos
-    console.log(`[restore-backup] Importando ${events.length} eventos...`);
+    // Importar eventos em lotes de 50 para melhor performance
+    console.log(`[restore-backup] Importando ${events.length} eventos em lotes...`);
     let eventsImported = 0;
+    const batchSize = 50;
     
-    for (const evt of events) {
-      try {
-        // Validar dados do evento
-        if (!evt.id || !evt.employeeId || !evt.employeeName || !evt.type || !evt.timestamp) {
-          console.error(`[restore-backup] Evento inválido:`, evt);
-          continue;
-        }
+    for (let i = 0; i < events.length; i += batchSize) {
+      const batch = events.slice(i, i + batchSize);
+      
+      for (const evt of batch) {
+        try {
+          // Validar dados do evento
+          if (!evt.id || !evt.employeeId || !evt.employeeName || !evt.type || !evt.timestamp) {
+            console.error(`[restore-backup] Evento inválido:`, evt);
+            continue;
+          }
 
-        await sql`
-          INSERT INTO events (id, employee_id, employee_name, type, timestamp)
-          VALUES (
-            ${evt.id}, 
-            ${evt.employeeId}, 
-            ${evt.employeeName}, 
-            ${evt.type}, 
-            ${evt.timestamp}
-          )
-          ON CONFLICT (id) DO UPDATE SET
-            employee_id = EXCLUDED.employee_id,
-            employee_name = EXCLUDED.employee_name,
-            type = EXCLUDED.type,
-            timestamp = EXCLUDED.timestamp
-        `;
-        eventsImported++;
-        
-        // Log a cada 100 eventos importados
-        if (eventsImported % 100 === 0) {
-          console.log(`[restore-backup] ${eventsImported} eventos importados...`);
+          await sql`
+            INSERT INTO events (id, employee_id, employee_name, type, timestamp)
+            VALUES (
+              ${evt.id}, 
+              ${evt.employeeId}, 
+              ${evt.employeeName}, 
+              ${evt.type}, 
+              ${evt.timestamp}
+            )
+            ON CONFLICT (id) DO UPDATE SET
+              employee_id = EXCLUDED.employee_id,
+              employee_name = EXCLUDED.employee_name,
+              type = EXCLUDED.type,
+              timestamp = EXCLUDED.timestamp
+          `;
+          eventsImported++;
+        } catch (error) {
+          console.error(`[restore-backup] Erro ao importar evento ${evt.id}:`, error.message);
         }
-      } catch (error) {
-        console.error(`[restore-backup] Erro ao importar evento ${evt.id}:`, error.message);
-        console.error(`[restore-backup] Dados do evento:`, JSON.stringify(evt));
       }
+      
+      // Log de progresso
+      console.log(`[restore-backup] ${eventsImported}/${events.length} eventos importados...`);
     }
+    
     console.log(`[restore-backup] ${eventsImported} eventos importados`);
 
     // Resetar sequências de ID para evitar conflitos futuros
@@ -118,14 +121,6 @@ export default async function handler(req, res) {
       if (maxEmpId > 0) {
         await sql`SELECT setval('employees_id_seq', ${maxEmpId + 1}, false)`;
         console.log(`[restore-backup] Sequência employees_id_seq ajustada para ${maxEmpId + 1}`);
-      }
-
-      // Encontrar o maior ID de events e ajustar a sequência (se existir)
-      const { rows: maxEvtRows } = await sql`SELECT MAX(id) as max_id FROM events`;
-      const maxEvtId = maxEvtRows[0]?.max_id || 0;
-      if (maxEvtId > 0) {
-        // Events usa timestamp como ID, então não precisa ajustar sequência
-        console.log(`[restore-backup] Maior ID de evento: ${maxEvtId}`);
       }
     } catch (error) {
       console.error('[restore-backup] Erro ao ajustar sequências:', error.message);
