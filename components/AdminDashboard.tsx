@@ -178,11 +178,37 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [showAddBreakModal, setShowAddBreakModal] = useState<{employeeId: number, employeeName: string, date: Date} | null>(null);
     const [editingEvent, setEditingEvent] = useState<StoredClockEvent | null>(null);
 
-    // Estados para lançamento manual
-    const [manualEmployeeId, setManualEmployeeId] = useState<string>('');
-    const [manualDate, setManualDate] = useState<string>(new Date().toISOString().split('T')[0]);
-    const [manualTime, setManualTime] = useState<string>('09:00');
-    const [manualType, setManualType] = useState<ClockType>(ClockType.Entrada);
+    // Estados para lançamento manual com persistência em localStorage
+    const [manualEmployeeId, setManualEmployeeId] = useState<string>(() => {
+        return localStorage.getItem('manualEmployeeId') || '';
+    });
+    const [manualDate, setManualDate] = useState<string>(() => {
+        return localStorage.getItem('manualDate') || new Date().toISOString().split('T')[0];
+    });
+    const [manualTime, setManualTime] = useState<string>(() => {
+        return localStorage.getItem('manualTime') || '09:00';
+    });
+    const [manualType, setManualType] = useState<ClockType>(() => {
+        const saved = localStorage.getItem('manualType');
+        return (saved as ClockType) || ClockType.Entrada;
+    });
+
+    // Sincronizar estados com localStorage
+    React.useEffect(() => {
+        localStorage.setItem('manualEmployeeId', manualEmployeeId);
+    }, [manualEmployeeId]);
+
+    React.useEffect(() => {
+        localStorage.setItem('manualDate', manualDate);
+    }, [manualDate]);
+
+    React.useEffect(() => {
+        localStorage.setItem('manualTime', manualTime);
+    }, [manualTime]);
+
+    React.useEffect(() => {
+        localStorage.setItem('manualType', manualType);
+    }, [manualType]);
 
     const handleAddEmployee = () => {
         if (!newEmployee.name || !newEmployee.pin || !newEmployee.phone) {
