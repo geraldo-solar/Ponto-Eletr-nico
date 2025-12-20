@@ -194,7 +194,8 @@ const App: React.FC = () => {
 
       if (response.ok) {
         console.log('[handleAddManualEvent] Sucesso! Status:', response.status);
-        await fetchEvents();
+        // Atrasar fetchEvents para permitir que as atualizações de estado do formulário sejam processadas primeiro
+        setTimeout(() => fetchEvents(), 500);
         return true;
       } else {
         const error = await response.json();
