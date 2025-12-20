@@ -381,7 +381,7 @@ const App: React.FC = () => {
         <h1 className="text-3xl font-bold tracking-wider text-white">Ponto Eletrônico</h1>
       </header>
 
-      <main className="w-full max-w-lg lg:max-w-4xl">
+      <main className="w-full max-w-lg lg:max-w-4xl mt-20">
         {isLoading ? <LoadingComponent /> : <MainComponent />}
       </main>
     </div>
