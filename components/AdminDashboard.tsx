@@ -431,14 +431,44 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         // Ordenar por nome
         employeeSummaries.sort((a, b) => a.name.localeCompare(b.name));
 
+        // Calcular totais gerais
+        let totalNormalMs = 0;
+        let totalExtraMs = 0;
+        let totalPaymentValue = 0;
+        
+        employeeSummaries.forEach(summary => {
+            // Converter horas de volta para milissegundos para somar
+            const normalParts = summary.normalHours.match(/(\d+)h (\d+)m/);
+            if (normalParts) {
+                totalNormalMs += (parseInt(normalParts[1]) * 60 + parseInt(normalParts[2])) * 60 * 1000;
+            }
+            
+            const extraParts = summary.extraHours.match(/(\d+)h (\d+)m/);
+            if (extraParts) {
+                totalExtraMs += (parseInt(extraParts[1]) * 60 + parseInt(extraParts[2])) * 60 * 1000;
+            }
+            
+            // Extrair valor numérico do pagamento
+            const paymentValue = parseFloat(summary.payment.replace('R$ ', '').replace('.', '').replace(',', '.'));
+            totalPaymentValue += paymentValue;
+        });
+        
+        const totalNormalHours = formatMilliseconds(totalNormalMs);
+        const totalExtraHours = formatMilliseconds(totalExtraMs);
+        const totalHours = formatMilliseconds(totalNormalMs + totalExtraMs);
+        const totalPayment = formatCurrency(totalPaymentValue);
+
         // Criar CSV com resumo por funcionário
         const periodLine = `Período:,${startDate} a ${endDate}\n\n`;
         const csvHeader = 'Funcionário,Função,Horas Normais,Horas Extras,Total de Horas,Valor a Pagar\n';
         const csvRows = employeeSummaries.map(summary => {
             return `${summary.name},${summary.funcao},${summary.normalHours},${summary.extraHours},${summary.totalHours},${summary.payment}`;
         }).join('\n');
+        
+        // Adicionar linha de total
+        const totalRow = `\n\nTOTAL,,${totalNormalHours},${totalExtraHours},${totalHours},${totalPayment}`;
 
-        const csvContent = periodLine + csvHeader + csvRows;
+        const csvContent = periodLine + csvHeader + csvRows + totalRow;
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
