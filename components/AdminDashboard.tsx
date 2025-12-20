@@ -171,7 +171,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         return now.toISOString().split('T')[0];
     });
 
-    const [newEmployee, setNewEmployee] = useState({ name: '', pin: '', phone: '' });
+    const [newEmployee, setNewEmployee] = useState({ name: '', pin: '', phone: '', cpf: '', funcao: '', pix: '' });
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     const [importMessage, setImportMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -193,7 +193,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             return;
         }
         onAddEmployee(newEmployee);
-        setNewEmployee({ name: '', pin: '', phone: '' });
+        setNewEmployee({ name: '', pin: '', phone: '', cpf: '', funcao: '', pix: '' });
     };
 
     const handleUpdateEmployee = () => {
@@ -518,6 +518,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             className="w-full bg-stone-800 text-white p-2 rounded"
                         />
                     </div>
+                    <div>
+                        <label htmlFor="cpf" className="block text-sm mb-1">CPF</label>
+                        <input
+                            id="cpf"
+                            type="text"
+                            value={newEmployee.cpf}
+                            onChange={(e) => setNewEmployee({ ...newEmployee, cpf: e.target.value })}
+                            placeholder="000.000.000-00"
+                            className="w-full bg-stone-800 text-white p-2 rounded"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="funcao" className="block text-sm mb-1">Função</label>
+                        <input
+                            id="funcao"
+                            type="text"
+                            value={newEmployee.funcao}
+                            onChange={(e) => setNewEmployee({ ...newEmployee, funcao: e.target.value })}
+                            placeholder="Ex: Vendedor, Gerente"
+                            className="w-full bg-stone-800 text-white p-2 rounded"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="pix" className="block text-sm mb-1">PIX</label>
+                        <input
+                            id="pix"
+                            type="text"
+                            value={newEmployee.pix}
+                            onChange={(e) => setNewEmployee({ ...newEmployee, pix: e.target.value })}
+                            placeholder="CPF, e-mail, telefone ou chave aleatória"
+                            className="w-full bg-stone-800 text-white p-2 rounded"
+                        />
+                    </div>
                 </div>
 
                 <button
@@ -561,6 +594,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div>
                                     <p className="font-semibold">{emp.name}</p>
                                     <p className="text-sm text-gray-400">PIN: {emp.pin}</p>
+                                    {emp.funcao && <p className="text-sm text-gray-400">Função: {emp.funcao}</p>}
+                                    {emp.cpf && <p className="text-sm text-gray-400">CPF: {emp.cpf}</p>}
                                 </div>
                                 <div className="flex gap-2">
                                     <button
@@ -616,6 +651,36 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     maxLength={PIN_LENGTH}
                                     value={editingEmployee.pin}
                                     onChange={(e) => setEditingEmployee({ ...editingEmployee, pin: e.target.value })}
+                                    className="w-full bg-emerald-800 text-white p-2 rounded"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm mb-1">CPF</label>
+                                <input
+                                    type="text"
+                                    value={editingEmployee.cpf || ''}
+                                    onChange={(e) => setEditingEmployee({ ...editingEmployee, cpf: e.target.value })}
+                                    placeholder="000.000.000-00"
+                                    className="w-full bg-emerald-800 text-white p-2 rounded"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm mb-1">Função</label>
+                                <input
+                                    type="text"
+                                    value={editingEmployee.funcao || ''}
+                                    onChange={(e) => setEditingEmployee({ ...editingEmployee, funcao: e.target.value })}
+                                    placeholder="Ex: Vendedor, Gerente"
+                                    className="w-full bg-emerald-800 text-white p-2 rounded"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm mb-1">PIX</label>
+                                <input
+                                    type="text"
+                                    value={editingEmployee.pix || ''}
+                                    onChange={(e) => setEditingEmployee({ ...editingEmployee, pix: e.target.value })}
+                                    placeholder="CPF, e-mail, telefone ou chave aleatória"
                                     className="w-full bg-emerald-800 text-white p-2 rounded"
                                 />
                             </div>

@@ -7,6 +7,9 @@ CREATE TABLE IF NOT EXISTS employees (
     name VARCHAR(255) NOT NULL,
     pin VARCHAR(4) NOT NULL UNIQUE,
     phone VARCHAR(20) NOT NULL,
+    cpf VARCHAR(14),
+    funcao VARCHAR(100),
+    pix VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

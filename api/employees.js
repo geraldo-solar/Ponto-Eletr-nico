@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       // Obter todos os funcionários
       const { rows } = await sql`
-        SELECT id, name, pin, phone 
+        SELECT id, name, pin, phone, cpf, funcao, pix 
         FROM employees 
         ORDER BY id ASC
       `;
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       // Adicionar novo funcionário
-      const { name, pin, phone } = req.body;
+      const { name, pin, phone, cpf, funcao, pix } = req.body;
       
       if (!name || !pin || !phone) {
         return res.status(400).json({ error: 'Campos obrigatórios: name, pin, phone' });
@@ -45,9 +45,9 @@ export default async function handler(req, res) {
       }
 
       const { rows } = await sql`
-        INSERT INTO employees (name, pin, phone)
-        VALUES (${name}, ${pin}, ${phone})
-        RETURNING id, name, pin, phone
+        INSERT INTO employees (name, pin, phone, cpf, funcao, pix)
+        VALUES (${name}, ${pin}, ${phone}, ${cpf || null}, ${funcao || null}, ${pix || null})
+        RETURNING id, name, pin, phone, cpf, funcao, pix
       `;
 
       return res.status(201).json({ success: true, employee: rows[0] });
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'PUT') {
       // Atualizar funcionário existente
-      const { id, name, pin, phone } = req.body;
+      const { id, name, pin, phone, cpf, funcao, pix } = req.body;
       
       if (!id || !name || !pin || !phone) {
         return res.status(400).json({ error: 'Campos obrigatórios: id, name, pin, phone' });
@@ -72,9 +72,10 @@ export default async function handler(req, res) {
 
       const { rows } = await sql`
         UPDATE employees 
-        SET name = ${name}, pin = ${pin}, phone = ${phone}
+        SET name = ${name}, pin = ${pin}, phone = ${phone}, 
+            cpf = ${cpf || null}, funcao = ${funcao || null}, pix = ${pix || null}
         WHERE id = ${id}
-        RETURNING id, name, pin, phone
+        RETURNING id, name, pin, phone, cpf, funcao, pix
       `;
 
       if (rows.length === 0) {

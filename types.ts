@@ -3,6 +3,9 @@ export interface Employee {
   name: string;
   pin: string;
   phone: string;
+  cpf?: string;
+  funcao?: string;
+  pix?: string;
 }
 
 export enum ClockType {
