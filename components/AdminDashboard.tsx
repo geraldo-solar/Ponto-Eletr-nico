@@ -449,7 +449,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             }
             
             // Extrair valor numérico do pagamento
-            const paymentValue = parseFloat(summary.payment.replace('R$ ', '').replace('.', '').replace(',', '.'));
+            // Remove tudo exceto dígitos e vírgula, depois substitui vírgula por ponto
+            const paymentValue = parseFloat(summary.payment.replace(/[^\d,]/g, '').replace(',', '.'));
             totalPaymentValue += paymentValue;
         });
         
