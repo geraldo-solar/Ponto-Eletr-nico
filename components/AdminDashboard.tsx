@@ -214,9 +214,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const [newEmployee, setNewEmployee] = useState({ name: '', pin: '', phone: '', cpf: '', funcao: '', pix: '' });
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-    const [importMessage, setImportMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
     const [restoreMessage, setRestoreMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const jsonBackupInputRef = useRef<HTMLInputElement>(null);
     const [showAddBreakModal, setShowAddBreakModal] = useState<{employeeId: number, employeeName: string, date: Date} | null>(null);
     const [editingEvent, setEditingEvent] = useState<StoredClockEvent | null>(null);
@@ -278,80 +276,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
         onUpdateEmployee(editingEmployee);
         setEditingEmployee(null);
-    };
-
-    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        const showMessage = (text: string, type: 'success' | 'error') => {
-            setImportMessage({ text, type });
-            setTimeout(() => setImportMessage(null), 7000);
-        };
-
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const text = e.target?.result as string;
-                const lines = text.trim().split('\n');
-                
-                if (lines.length < 2) {
-                    throw new Error("Arquivo CSV vazio ou inválido.");
-                }
-
-                const header = lines[0].toLowerCase();
-                if (!header.includes('nome') || !header.includes('telefone') || !header.includes('pin')) {
-                    throw new Error("Cabeçalho do CSV inválido. Esperado: Nome,telefone,Pin");
-                }
-
-                const employeesToImport: Omit<Employee, 'id'>[] = [];
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-
-                    const parts = line.split(/[,;]/).map(p => p.trim());
-                    if (parts.length < 3) {
-                        throw new Error(`Linha ${i + 1} inválida: dados insuficientes.`);
-                    }
-
-                    const [name, phone, pin] = parts;
-                    if (!name || !phone || !pin) {
-                        throw new Error(`Linha ${i + 1} inválida: campos vazios.`);
-                    }
-
-                    if (pin.length !== PIN_LENGTH) {
-                        throw new Error(`Linha ${i + 1}: PIN deve ter ${PIN_LENGTH} dígitos.`);
-                    }
-
-                    employeesToImport.push({ name, phone, pin });
-                }
-
-                if (employeesToImport.length === 0) {
-                    throw new Error("Nenhum funcionário válido encontrado no arquivo.");
-                }
-
-                const result = await onImportEmployees(employeesToImport);
-                
-                if (result.errors.length > 0) {
-                    showMessage(result.errors.join(' '), 'error');
-                } else {
-                    showMessage(
-                        `Importação concluída! ${result.added} adicionado(s), ${result.updated} atualizado(s).`,
-                        'success'
-                    );
-                }
-
-                if (event.target) event.target.value = '';
-            } catch (error: any) {
-                showMessage(error.message || "Erro ao processar o arquivo CSV.", 'error');
-                if (event.target) event.target.value = '';
-            }
-        };
-        reader.onerror = () => {
-            showMessage("Erro ao ler o arquivo.", 'error');
-            if (event.target) event.target.value = '';
-        };
-        reader.readAsText(file);
     };
 
     const handleRestoreBackup = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -912,32 +836,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 >
                     Cadastrar Funcionário
                 </button>
-
-                <div className="pt-4 border-t border-gray-600">
-                    <h4 className="text-lg font-semibold mb-2">Importação em Massa</h4>
-                    <p className="text-sm text-gray-400 mb-2">
-                        Importe funcionários de um arquivo CSV. O cabeçalho do arquivo deve ser <strong>Nome,telefone,Pin</strong> (separado por vírgula ou ponto e vírgula).
-                    </p>
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                    >
-                        <UploadIcon />
-                        Selecionar Arquivo CSV
-                    </button>
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileUpload}
-                        accept=".csv"
-                        className="hidden"
-                    />
-                    {importMessage && (
-                        <div className={`mt-2 text-center text-sm font-semibold p-2 rounded-md ${importMessage.type === 'success' ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
-                            {importMessage.text}
-                        </div>
-                    )}
-                </div>
 
                 <div className="pt-4 border-t border-gray-600">
                     <h4 className="text-lg font-semibold mb-2">Restaurar Backup Completo</h4>
