@@ -370,7 +370,7 @@ const App: React.FC = () => {
         onAddEvent={handleAddEvent}
       />;
     }
-    return <LoginScreen onLogin={handleLogin} employees={employeesWithAdmin} />;
+    return <LoginScreen onLogin={handleLogin} employees={employeesWithAdmin} events={allEvents} />;
   }
 
   const LoadingComponent = () => (
