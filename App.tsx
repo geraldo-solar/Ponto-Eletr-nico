@@ -112,16 +112,21 @@ const App: React.FC = () => {
     if (!loggedInEmployee) return;
     
     try {
-      // Criar timestamp no horário local do Brasil (GMT-3)
+      // Usar horário local do dispositivo (mesmo formato do handleAddManualEvent)
       const now = new Date();
-      const brazilOffset = -3 * 60; // GMT-3 em minutos
-      const localTime = new Date(now.getTime() + (brazilOffset - now.getTimezoneOffset()) * 60000);
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const localTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
       
       const newEvent = {
         employeeId: loggedInEmployee.id,
         employeeName: loggedInEmployee.name,
         type,
-        timestamp: localTime.toISOString(),
+        timestamp: localTimestamp,
       };
 
       const response = await fetch(`${API_BASE_URL}/api/events`, {
