@@ -468,94 +468,104 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             employeeGroups[event.employeeId].push(event);
         });
 
-        // Calcular resumo por funcionário
-        const employeeSummaries: Array<{
-            name: string;
-            funcao: string;
-            normalHours: string;
-            extraHours: string;
-            totalHours: string;
-            payment: string;
-        }> = [];
+        let csvContent = `Período:,${startDate} a ${endDate}\n\n`;
+        
+        let grandTotalNormalMs = 0;
+        let grandTotalExtraMs = 0;
+        let grandTotalPayment = 0;
 
-        Object.entries(employeeGroups).forEach(([employeeId, empEvents]) => {
-            // Agrupar por turnos
-            const shifts = groupEventsByShifts(empEvents);
+        // Ordenar funcionários por nome
+        const sortedEmployees = Object.entries(employeeGroups).sort((a, b) => {
+            return a[1][0].employeeName.localeCompare(b[1][0].employeeName);
+        });
 
-            let totalNormal = 0;
-            let totalExtra = 0;
-            let totalPayment = 0;
-
-            shifts.forEach(shiftEvents => {
-                const details = calculateWorkDetails(shiftEvents);
-                if (details.status === 'complete') {
-                    totalNormal += details.normal;
-                    totalExtra += details.extra;
-                    totalPayment += details.payment.total;
-                }
-            });
-
-            // Buscar função do funcionário
+        sortedEmployees.forEach(([employeeId, empEvents]) => {
             const employee = employees.find(e => e.id === parseInt(employeeId));
             const funcao = employee?.funcao || '';
+            const employeeName = empEvents[0].employeeName;
 
-            employeeSummaries.push({
-                name: empEvents[0].employeeName,
-                funcao: funcao,
-                normalHours: formatMilliseconds(totalNormal),
-                extraHours: formatMilliseconds(totalExtra),
-                totalHours: formatMilliseconds(totalNormal + totalExtra),
-                payment: formatCurrency(totalPayment)
+            // Cabeçalho do funcionário
+            csvContent += `\n=== ${employeeName} - ${funcao} ===\n`;
+            csvContent += `Data,Entrada,Início Intervalo,Fim Intervalo,Saída,Horas Normais,Horas Extras,Total Horas,Valor Dia\n`;
+
+            // Agrupar eventos por data
+            const eventsByDate: Record<string, StoredClockEvent[]> = {};
+            empEvents.forEach(event => {
+                const eventDate = new Date(event.timestamp);
+                const dateKey = `${String(eventDate.getUTCFullYear())}-${String(eventDate.getUTCMonth() + 1).padStart(2, '0')}-${String(eventDate.getUTCDate()).padStart(2, '0')}`;
+                if (!eventsByDate[dateKey]) {
+                    eventsByDate[dateKey] = [];
+                }
+                eventsByDate[dateKey].push(event);
             });
+
+            // Ordenar datas
+            const sortedDates = Object.keys(eventsByDate).sort();
+
+            let employeeTotalNormalMs = 0;
+            let employeeTotalExtraMs = 0;
+            let employeeTotalPayment = 0;
+
+            sortedDates.forEach(dateKey => {
+                const dayEvents = eventsByDate[dateKey];
+                const shifts = groupEventsByShifts(dayEvents);
+
+                let dayNormalMs = 0;
+                let dayExtraMs = 0;
+                let dayPayment = 0;
+
+                // Coletar horários das batidas
+                let entrada = '';
+                let inicioIntervalo = '';
+                let fimIntervalo = '';
+                let saida = '';
+
+                dayEvents.forEach(event => {
+                    const time = formatBrasiliaTime(event.timestamp);
+                    if (event.type === 'Entrada') entrada = time;
+                    if (event.type === 'Início Intervalo') inicioIntervalo = time;
+                    if (event.type === 'Fim Intervalo') fimIntervalo = time;
+                    if (event.type === 'Saída') saida = time;
+                });
+
+                shifts.forEach(shiftEvents => {
+                    const details = calculateWorkDetails(shiftEvents);
+                    if (details.status === 'complete') {
+                        dayNormalMs += details.normal;
+                        dayExtraMs += details.extra;
+                        dayPayment += details.payment.total;
+                    }
+                });
+
+                employeeTotalNormalMs += dayNormalMs;
+                employeeTotalExtraMs += dayExtraMs;
+                employeeTotalPayment += dayPayment;
+
+                // Formatar data para exibição
+                const [year, month, day] = dateKey.split('-');
+                const displayDate = `${day}/${month}/${year}`;
+
+                csvContent += `${displayDate},${entrada},${inicioIntervalo},${fimIntervalo},${saida},${formatMilliseconds(dayNormalMs)},${formatMilliseconds(dayExtraMs)},${formatMilliseconds(dayNormalMs + dayExtraMs)},${formatCurrency(dayPayment)}\n`;
+            });
+
+            // Subtotal do funcionário
+            csvContent += `SUBTOTAL ${employeeName},,,,,,${formatMilliseconds(employeeTotalNormalMs)},${formatMilliseconds(employeeTotalExtraMs)},${formatMilliseconds(employeeTotalNormalMs + employeeTotalExtraMs)},${formatCurrency(employeeTotalPayment)}\n`;
+
+            grandTotalNormalMs += employeeTotalNormalMs;
+            grandTotalExtraMs += employeeTotalExtraMs;
+            grandTotalPayment += employeeTotalPayment;
         });
 
-        // Ordenar por nome
-        employeeSummaries.sort((a, b) => a.name.localeCompare(b.name));
+        // Total geral
+        csvContent += `\n\n=== TOTAL GERAL ===\n`;
+        csvContent += `Horas Normais,Horas Extras,Total de Horas,Valor Total a Pagar\n`;
+        csvContent += `${formatMilliseconds(grandTotalNormalMs)},${formatMilliseconds(grandTotalExtraMs)},${formatMilliseconds(grandTotalNormalMs + grandTotalExtraMs)},${formatCurrency(grandTotalPayment)}\n`;
 
-        // Calcular totais gerais
-        let totalNormalMs = 0;
-        let totalExtraMs = 0;
-        let totalPaymentValue = 0;
-        
-        employeeSummaries.forEach(summary => {
-            // Converter horas de volta para milissegundos para somar
-            const normalParts = summary.normalHours.match(/(\d+)h (\d+)m/);
-            if (normalParts) {
-                totalNormalMs += (parseInt(normalParts[1]) * 60 + parseInt(normalParts[2])) * 60 * 1000;
-            }
-            
-            const extraParts = summary.extraHours.match(/(\d+)h (\d+)m/);
-            if (extraParts) {
-                totalExtraMs += (parseInt(extraParts[1]) * 60 + parseInt(extraParts[2])) * 60 * 1000;
-            }
-            
-            // Extrair valor numérico do pagamento
-            // Remove tudo exceto dígitos e vírgula, depois substitui vírgula por ponto
-            const paymentValue = parseFloat(summary.payment.replace(/[^\d,]/g, '').replace(',', '.'));
-            totalPaymentValue += paymentValue;
-        });
-        
-        const totalNormalHours = formatMilliseconds(totalNormalMs);
-        const totalExtraHours = formatMilliseconds(totalExtraMs);
-        const totalHours = formatMilliseconds(totalNormalMs + totalExtraMs);
-        const totalPayment = formatCurrency(totalPaymentValue);
-
-        // Criar CSV com resumo por funcionário
-        const periodLine = `Período:,${startDate} a ${endDate}\n\n`;
-        const csvHeader = 'Funcionário,Função,Horas Normais,Horas Extras,Total de Horas,Valor a Pagar\n';
-        const csvRows = employeeSummaries.map(summary => {
-            return `${summary.name},${summary.funcao},${summary.normalHours},${summary.extraHours},${summary.totalHours},${summary.payment}`;
-        }).join('\n');
-        
-        // Adicionar linha de total
-        const totalRow = `\n\nTOTAL,,${totalNormalHours},${totalExtraHours},${totalHours},${totalPayment}`;
-
-        const csvContent = periodLine + csvHeader + csvRows + totalRow;
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `resumo_funcionarios_${startDate}_${endDate}.csv`;
+        link.download = `relatorio_detalhado_${startDate}_${endDate}.csv`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
