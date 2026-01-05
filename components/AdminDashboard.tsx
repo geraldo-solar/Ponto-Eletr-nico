@@ -642,13 +642,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         if (!editingEvent) return null;
         
         const eventDate = new Date(editingEvent.timestamp);
-        // Usar métodos locais para evitar conversão UTC
-        const localYear = eventDate.getFullYear();
-        const localMonth = String(eventDate.getMonth() + 1).padStart(2, '0');
-        const localDay = String(eventDate.getDate()).padStart(2, '0');
+        // Usar getUTC* para consistir com a listagem (que também usa getUTC*)
+        const localYear = eventDate.getUTCFullYear();
+        const localMonth = String(eventDate.getUTCMonth() + 1).padStart(2, '0');
+        const localDay = String(eventDate.getUTCDate()).padStart(2, '0');
         const [editDate, setEditDate] = useState(`${localYear}-${localMonth}-${localDay}`);
-        // Usar horário local em vez de UTC
-        const [editTime, setEditTime] = useState(`${String(eventDate.getHours()).padStart(2, '0')}:${String(eventDate.getMinutes()).padStart(2, '0')}`);
+        const [editTime, setEditTime] = useState(`${String(eventDate.getUTCHours()).padStart(2, '0')}:${String(eventDate.getUTCMinutes()).padStart(2, '0')}`);
         const [editType, setEditType] = useState(editingEvent.type);
 
         const handleSaveEdit = async () => {
