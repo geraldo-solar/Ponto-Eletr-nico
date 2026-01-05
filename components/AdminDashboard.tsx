@@ -561,7 +561,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         csvContent += `Horas Normais,Horas Extras,Total de Horas,Valor Total a Pagar\n`;
         csvContent += `${formatMilliseconds(grandTotalNormalMs)},${formatMilliseconds(grandTotalExtraMs)},${formatMilliseconds(grandTotalNormalMs + grandTotalExtraMs)},"${formatCurrency(grandTotalPayment)}"\n`;
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        // Adicionar BOM UTF-8 para garantir codificação correta no Excel/Windows/Android
+        const BOM = '\uFEFF';
+        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
