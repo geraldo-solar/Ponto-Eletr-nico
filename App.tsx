@@ -112,11 +112,16 @@ const App: React.FC = () => {
     if (!loggedInEmployee) return;
     
     try {
+      // Criar timestamp no horário local do Brasil (GMT-3)
+      const now = new Date();
+      const brazilOffset = -3 * 60; // GMT-3 em minutos
+      const localTime = new Date(now.getTime() + (brazilOffset - now.getTimezoneOffset()) * 60000);
+      
       const newEvent = {
         employeeId: loggedInEmployee.id,
         employeeName: loggedInEmployee.name,
         type,
-        timestamp: new Date().toISOString(),
+        timestamp: localTime.toISOString(),
       };
 
       const response = await fetch(`${API_BASE_URL}/api/events`, {
