@@ -56,6 +56,7 @@ interface AdminDashboardProps {
   onRefresh: () => Promise<void>;
 }
 
+const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000';
 const NORMAL_WORK_MILLISECONDS = 8 * 60 * 60 * 1000;
 const NORMAL_HOUR_RATE = 8.15;
 const EXTRA_HOUR_RATE = 16.30;
