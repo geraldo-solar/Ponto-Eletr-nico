@@ -253,8 +253,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }, [manualType]);
 
     const handleAddEmployee = () => {
-        if (!newEmployee.name || !newEmployee.pin || !newEmployee.phone) {
-            alert('Preencha todos os campos');
+        if (!newEmployee.name || !newEmployee.pin) {
+            alert('Preencha os campos obrigatórios: Nome e PIN');
             return;
         }
         if (newEmployee.pin.length !== PIN_LENGTH) {
@@ -267,7 +267,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const handleUpdateEmployee = () => {
         if (!editingEmployee) return;
-        if (!editingEmployee.name || !editingEmployee.pin || !editingEmployee.phone) {
+        if (!editingEmployee.name || !editingEmployee.pin) {
             alert('Preencha todos os campos');
             return;
         }
