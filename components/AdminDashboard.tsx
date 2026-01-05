@@ -545,11 +545,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 const [year, month, day] = dateKey.split('-');
                 const displayDate = `${day}/${month}/${year}`;
 
-                csvContent += `${displayDate},${entrada},${inicioIntervalo},${fimIntervalo},${saida},${formatMilliseconds(dayNormalMs)},${formatMilliseconds(dayExtraMs)},${formatMilliseconds(dayNormalMs + dayExtraMs)},${formatCurrency(dayPayment)}\n`;
+                csvContent += `${displayDate},${entrada},${inicioIntervalo},${fimIntervalo},${saida},${formatMilliseconds(dayNormalMs)},${formatMilliseconds(dayExtraMs)},${formatMilliseconds(dayNormalMs + dayExtraMs)},"${formatCurrency(dayPayment)}"\n`;
             });
 
             // Subtotal do funcionário
-            csvContent += `SUBTOTAL ${employeeName},,,,,,${formatMilliseconds(employeeTotalNormalMs)},${formatMilliseconds(employeeTotalExtraMs)},${formatMilliseconds(employeeTotalNormalMs + employeeTotalExtraMs)},${formatCurrency(employeeTotalPayment)}\n`;
+            csvContent += `SUBTOTAL ${employeeName},,,,,,${formatMilliseconds(employeeTotalNormalMs)},${formatMilliseconds(employeeTotalExtraMs)},${formatMilliseconds(employeeTotalNormalMs + employeeTotalExtraMs)},"${formatCurrency(employeeTotalPayment)}"\n`;
 
             grandTotalNormalMs += employeeTotalNormalMs;
             grandTotalExtraMs += employeeTotalExtraMs;
@@ -559,7 +559,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         // Total geral
         csvContent += `\n\n=== TOTAL GERAL ===\n`;
         csvContent += `Horas Normais,Horas Extras,Total de Horas,Valor Total a Pagar\n`;
-        csvContent += `${formatMilliseconds(grandTotalNormalMs)},${formatMilliseconds(grandTotalExtraMs)},${formatMilliseconds(grandTotalNormalMs + grandTotalExtraMs)},${formatCurrency(grandTotalPayment)}\n`;
+        csvContent += `${formatMilliseconds(grandTotalNormalMs)},${formatMilliseconds(grandTotalExtraMs)},${formatMilliseconds(grandTotalNormalMs + grandTotalExtraMs)},"${formatCurrency(grandTotalPayment)}"\n`;
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
