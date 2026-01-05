@@ -331,10 +331,19 @@ const App: React.FC = () => {
 
   const handleUpdateEvent = async (eventId: number, newTimestamp: Date) => {
     try {
+      // Usar horário local do dispositivo (mesmo formato usado em outras funções)
+      const year = newTimestamp.getFullYear();
+      const month = String(newTimestamp.getMonth() + 1).padStart(2, '0');
+      const day = String(newTimestamp.getDate()).padStart(2, '0');
+      const hours = String(newTimestamp.getHours()).padStart(2, '0');
+      const minutes = String(newTimestamp.getMinutes()).padStart(2, '0');
+      const seconds = String(newTimestamp.getSeconds()).padStart(2, '0');
+      const localTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
+      
       const response = await fetch(`${API_BASE_URL}/api/events`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: eventId, timestamp: newTimestamp.toISOString() }),
+        body: JSON.stringify({ id: eventId, timestamp: localTimestamp }),
       });
 
       if (response.ok) {
