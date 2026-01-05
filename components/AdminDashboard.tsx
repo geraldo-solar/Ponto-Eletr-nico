@@ -642,7 +642,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         
         const eventDate = new Date(editingEvent.timestamp);
         const [editDate, setEditDate] = useState(eventDate.toISOString().split('T')[0]);
-        const [editTime, setEditTime] = useState(`${String(eventDate.getUTCHours()).padStart(2, '0')}:${String(eventDate.getUTCMinutes()).padStart(2, '0')}`);
+        // Usar horário local em vez de UTC
+        const [editTime, setEditTime] = useState(`${String(eventDate.getHours()).padStart(2, '0')}:${String(eventDate.getMinutes()).padStart(2, '0')}`);
         const [editType, setEditType] = useState(editingEvent.type);
 
         const handleSaveEdit = async () => {
