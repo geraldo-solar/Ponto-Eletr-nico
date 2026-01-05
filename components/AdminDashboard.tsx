@@ -666,11 +666,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     setEditingEvent(null);
                     onRefresh();
                 } else {
-                    alert('Erro ao atualizar evento');
+                    const errorData = await response.json();
+                    console.error('Erro da API:', errorData);
+                    alert(`Erro ao atualizar evento: ${errorData.error || 'Erro desconhecido'}`);
                 }
             } catch (error) {
                 console.error('Erro ao atualizar evento:', error);
-                alert('Erro ao atualizar evento');
+                alert(`Erro ao atualizar evento: ${error.message}`);
             }
         };
 

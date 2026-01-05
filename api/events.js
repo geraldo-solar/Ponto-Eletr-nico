@@ -91,6 +91,9 @@ export default async function handler(req, res) {
         RETURNING id, employee_id as "employeeId", employee_name as "employeeName", type, timestamp
       `;
       
+      console.log('UPDATE Query:', query);
+      console.log('UPDATE Values:', values);
+      
       const { rows } = await sql.query(query, values);
 
       if (rows.length === 0) {
