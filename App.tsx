@@ -112,7 +112,7 @@ const App: React.FC = () => {
     if (!loggedInEmployee) return;
     
     try {
-      // Usar horário local do dispositivo e adicionar offset de Brasília (-03:00)
+      // Construir timestamp usando horário LOCAL do dispositivo
       const now = new Date();
       const year = now.getFullYear();
       const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -120,8 +120,12 @@ const App: React.FC = () => {
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const seconds = String(now.getSeconds()).padStart(2, '0');
-      // Timestamp com offset de Brasília para evitar conversões do banco
+      
+      // Montar timestamp com offset de Brasília
       const localTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}-03:00`;
+      
+      console.log('[handleAddEvent] Data/hora local:', `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`);
+      console.log('[handleAddEvent] Timestamp enviado ao banco:', localTimestamp);
       
       const newEvent = {
         employeeId: loggedInEmployee.id,
