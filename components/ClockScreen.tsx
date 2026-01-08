@@ -5,13 +5,13 @@ import { ClockType } from '../types';
 import Clock from './Clock';
 import { ClockInIcon, CoffeeIcon, LogoutIcon, PlayIcon, StopIcon } from './Icons';
 
-// Função para formatar hora usando horário local
-// Os timestamps agora são salvos sem .000Z, então são interpretados como local
+// Função para formatar hora
+// O banco converte timestamps com offset para UTC, então usamos getUTC* para exibir
 const formatBrasiliaTime = (timestamp: string | Date): string => {
     const date = new Date(timestamp);
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
     return `${hours}:${minutes}:${seconds}`;
 };
 
