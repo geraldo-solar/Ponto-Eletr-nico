@@ -352,13 +352,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             return;
         }
 
-        // Criar timestamp diretamente no formato string para evitar conversão de timezone
+        // Criar timestamp usando Date.UTC para evitar conversões de timezone
         // Separar data e hora para construir o Date corretamente
         const [year, month, day] = manualDate.split('-');
         const [hours, minutes] = manualTime.split(':');
         
-        // Criar Date usando componentes individuais (interpretado como hora local)
-        const dateTime = new Date(
+        // Criar Date usando Date.UTC (retorna timestamp em milissegundos)
+        const dateTime = new Date(Date.UTC(
             parseInt(year),
             parseInt(month) - 1, // Mês é 0-indexed
             parseInt(day),
@@ -366,7 +366,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             parseInt(minutes),
             0, // segundos
             0  // milissegundos
-        );
+        ));
         
         const success = await onAddManualEvent({
             employeeId: parseInt(manualEmployeeId),
