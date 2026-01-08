@@ -112,8 +112,7 @@ const App: React.FC = () => {
     if (!loggedInEmployee) return;
     
     try {
-      // Usar horário local do dispositivo e salvar mantendo os mesmos números
-      // Ex: 19:34 BRT deve ser salvo como 19:34 UTC (não converter para 22:34 UTC)
+      // Usar horário local do dispositivo SEM sufixo Z para evitar conversões do banco
       const now = new Date();
       const year = now.getFullYear();
       const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -121,8 +120,8 @@ const App: React.FC = () => {
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const seconds = String(now.getSeconds()).padStart(2, '0');
-      // Criar timestamp mantendo os números locais mas com sufixo Z para consistência
-      const localTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
+      // Timestamp sem indicador de timezone (será tratado como local pelo banco)
+      const localTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
       
       const newEvent = {
         employeeId: loggedInEmployee.id,
@@ -179,9 +178,7 @@ const App: React.FC = () => {
     }
 
     try {
-      // Converter horário local de Brasília para UTC mantendo os mesmos números
-      // Ex: 18:00 BRT deve ser salvo como 18:00 UTC (não 21:00 UTC)
-      // IMPORTANTE: Usar getUTC* para evitar conversões de timezone
+      // Usar getUTC* para extrair componentes sem conversão, mas salvar SEM .000Z
       const localDate = details.timestamp;
       const year = localDate.getUTCFullYear();
       const month = String(localDate.getUTCMonth() + 1).padStart(2, '0');
@@ -189,7 +186,8 @@ const App: React.FC = () => {
       const hours = String(localDate.getUTCHours()).padStart(2, '0');
       const minutes = String(localDate.getUTCMinutes()).padStart(2, '0');
       const seconds = String(localDate.getUTCSeconds()).padStart(2, '0');
-      const utcTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
+      // Timestamp sem indicador de timezone (será tratado como local pelo banco)
+      const utcTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
       
       const newEvent = {
         employeeId: employee.id,

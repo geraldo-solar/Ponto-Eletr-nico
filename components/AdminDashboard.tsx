@@ -6,36 +6,34 @@ import type { Employee, StoredClockEvent, AppState } from '../types';
 import { ClockType } from '../types';
 import { PIN_LENGTH } from '../constants';
 import { LogoutIcon, EditIcon, DownloadIcon, DeleteIcon, UploadIcon } from './Icons';
-// Funções para formatar data/hora interpretando timestamps UTC como horário local de Brasília
-// Os timestamps no banco estão em UTC, mas representam horários locais de Brasília
-// Exemplo: "2025-12-18T08:00:00.000Z" deve ser exibido como "18/12/2025, 08:00:00"
+// Funções para formatar data/hora usando horário local
+// Os timestamps no banco agora são salvos SEM .000Z, então são interpretados como local
 const formatBrasiliaDateTime = (timestamp: string | Date): string => {
     const date = new Date(timestamp);
-    // Extrair componentes do timestamp UTC e exibir como se fosse local
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const year = date.getUTCFullYear();
-    const hours = String(date.getUTCHours()).padStart(2, '0');
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
     
     return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
 };
 
 const formatBrasiliaDate = (timestamp: string | Date): string => {
     const date = new Date(timestamp);
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const year = date.getUTCFullYear();
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
     
     return `${day}/${month}/${year}`;
 };
 
 const formatBrasiliaTime = (timestamp: string | Date): string => {
     const date = new Date(timestamp);
-    const hours = String(date.getUTCHours()).padStart(2, '0');
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
     
     return `${hours}:${minutes}:${seconds}`;
 };
@@ -507,7 +505,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const eventsByDate: Record<string, StoredClockEvent[]> = {};
             empEvents.forEach(event => {
                 const eventDate = new Date(event.timestamp);
-                const dateKey = `${String(eventDate.getUTCFullYear())}-${String(eventDate.getUTCMonth() + 1).padStart(2, '0')}-${String(eventDate.getUTCDate()).padStart(2, '0')}`;
+                const dateKey = `${String(eventDate.getFullYear())}-${String(eventDate.getMonth() + 1).padStart(2, '0')}-${String(eventDate.getDate()).padStart(2, '0')}`;
                 if (!eventsByDate[dateKey]) {
                     eventsByDate[dateKey] = [];
                 }
@@ -669,17 +667,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         if (!editingEvent) return null;
         
         const eventDate = new Date(editingEvent.timestamp);
-        // Usar getUTC* para consistir com a listagem (que também usa getUTC*)
-        const localYear = eventDate.getUTCFullYear();
-        const localMonth = String(eventDate.getUTCMonth() + 1).padStart(2, '0');
-        const localDay = String(eventDate.getUTCDate()).padStart(2, '0');
+        // Usar métodos locais já que timestamps agora são sem .000Z
+        const localYear = eventDate.getFullYear();
+        const localMonth = String(eventDate.getMonth() + 1).padStart(2, '0');
+        const localDay = String(eventDate.getDate()).padStart(2, '0');
         const [editDate, setEditDate] = useState(`${localYear}-${localMonth}-${localDay}`);
-        const [editTime, setEditTime] = useState(`${String(eventDate.getUTCHours()).padStart(2, '0')}:${String(eventDate.getUTCMinutes()).padStart(2, '0')}`);
+        const [editTime, setEditTime] = useState(`${String(eventDate.getHours()).padStart(2, '0')}:${String(eventDate.getMinutes()).padStart(2, '0')}`);
         const [editType, setEditType] = useState(editingEvent.type);
 
         const handleSaveEdit = async () => {
             const [hours, minutes] = editTime.split(':');
-            const newTimestamp = `${editDate}T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:00.000Z`;
+            // Timestamp sem .000Z para evitar conversões do banco
+            const newTimestamp = `${editDate}T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:00`;
 
             try {
                 const response = await fetch(`${API_BASE_URL}/api/events`, {
