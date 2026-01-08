@@ -112,7 +112,7 @@ const App: React.FC = () => {
     if (!loggedInEmployee) return;
     
     try {
-      // Usar horário local do dispositivo SEM sufixo Z para evitar conversões do banco
+      // Usar horário local do dispositivo e adicionar offset de Brasília (-03:00)
       const now = new Date();
       const year = now.getFullYear();
       const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -120,8 +120,8 @@ const App: React.FC = () => {
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const seconds = String(now.getSeconds()).padStart(2, '0');
-      // Timestamp sem indicador de timezone (será tratado como local pelo banco)
-      const localTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+      // Timestamp com offset de Brasília para evitar conversões do banco
+      const localTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}-03:00`;
       
       const newEvent = {
         employeeId: loggedInEmployee.id,
@@ -178,7 +178,7 @@ const App: React.FC = () => {
     }
 
     try {
-      // Usar getUTC* para extrair componentes sem conversão, mas salvar SEM .000Z
+      // Usar getUTC* para extrair componentes e adicionar offset de Brasília
       const localDate = details.timestamp;
       const year = localDate.getUTCFullYear();
       const month = String(localDate.getUTCMonth() + 1).padStart(2, '0');
@@ -186,8 +186,8 @@ const App: React.FC = () => {
       const hours = String(localDate.getUTCHours()).padStart(2, '0');
       const minutes = String(localDate.getUTCMinutes()).padStart(2, '0');
       const seconds = String(localDate.getUTCSeconds()).padStart(2, '0');
-      // Timestamp sem indicador de timezone (será tratado como local pelo banco)
-      const utcTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+      // Timestamp com offset de Brasília para evitar conversões do banco
+      const utcTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}-03:00`;
       
       const newEvent = {
         employeeId: employee.id,
