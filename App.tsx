@@ -112,24 +112,15 @@ const App: React.FC = () => {
     if (!loggedInEmployee) return;
     
     try {
-      // Pegar horário local e ADICIONAR 3 horas para compensar a conversão do banco
+      // Usar horário local do dispositivo (código original que funcionava)
       const now = new Date();
-      // Adicionar 3 horas (3 * 60 * 60 * 1000 ms)
-      const adjusted = new Date(now.getTime() + (3 * 60 * 60 * 1000));
-      
-      const year = adjusted.getFullYear();
-      const month = String(adjusted.getMonth() + 1).padStart(2, '0');
-      const day = String(adjusted.getDate()).padStart(2, '0');
-      const hours = String(adjusted.getHours()).padStart(2, '0');
-      const minutes = String(adjusted.getMinutes()).padStart(2, '0');
-      const seconds = String(adjusted.getSeconds()).padStart(2, '0');
-      
-      // Montar timestamp com offset de Brasília
-      const localTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}-03:00`;
-      
-      console.log('[handleAddEvent] Horário original:', now.toLocaleString('pt-BR'));
-      console.log('[handleAddEvent] Horário ajustado (+3h):', adjusted.toLocaleString('pt-BR'));
-      console.log('[handleAddEvent] Timestamp enviado:', localTimestamp);
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const localTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
       
       const newEvent = {
         employeeId: loggedInEmployee.id,
@@ -186,18 +177,15 @@ const App: React.FC = () => {
     }
 
     try {
-      // Adicionar 3 horas ao timestamp para compensar conversão do banco
+      // Converter horário local de Brasília para UTC mantendo os mesmos números (código original)
       const localDate = details.timestamp;
-      const adjusted = new Date(localDate.getTime() + (3 * 60 * 60 * 1000));
-      
-      const year = adjusted.getUTCFullYear();
-      const month = String(adjusted.getUTCMonth() + 1).padStart(2, '0');
-      const day = String(adjusted.getUTCDate()).padStart(2, '0');
-      const hours = String(adjusted.getUTCHours()).padStart(2, '0');
-      const minutes = String(adjusted.getUTCMinutes()).padStart(2, '0');
-      const seconds = String(adjusted.getUTCSeconds()).padStart(2, '0');
-      // Timestamp com offset de Brasília
-      const utcTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}-03:00`;
+      const year = localDate.getFullYear();
+      const month = String(localDate.getMonth() + 1).padStart(2, '0');
+      const day = String(localDate.getDate()).padStart(2, '0');
+      const hours = String(localDate.getHours()).padStart(2, '0');
+      const minutes = String(localDate.getMinutes()).padStart(2, '0');
+      const seconds = String(localDate.getSeconds()).padStart(2, '0');
+      const utcTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
       
       const newEvent = {
         employeeId: employee.id,

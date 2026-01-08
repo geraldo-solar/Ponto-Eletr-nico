@@ -677,8 +677,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         const handleSaveEdit = async () => {
             const [hours, minutes] = editTime.split(':');
-            // Timestamp com offset de Brasília para evitar conversões do banco
-            const newTimestamp = `${editDate}T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:00-03:00`;
+            const newTimestamp = `${editDate}T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:00.000Z`;
 
             try {
                 const response = await fetch(`${API_BASE_URL}/api/events`, {
