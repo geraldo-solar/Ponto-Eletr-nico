@@ -350,12 +350,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             return;
         }
 
-        // Criar Date usando horário LOCAL (igual ao handleAddEvent que funciona)
+        // Criar Date em UTC e ajustar para Brasília (GMT-3)
         const [year, month, day] = manualDate.split('-');
         const [hours, minutes] = manualTime.split(':');
         
-        // Usar construtor normal para criar Date em horário local
-        const dateTime = new Date(
+        // Criar data em UTC com os valores inseridos
+        const dateTime = new Date(Date.UTC(
             parseInt(year),
             parseInt(month) - 1, // Mês é 0-indexed
             parseInt(day),
@@ -363,7 +363,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             parseInt(minutes),
             0, // segundos
             0  // milissegundos
-        );
+        ));
+        
+        // Adicionar 3 horas para compensar GMT-3 → UTC
+        dateTime.setUTCHours(dateTime.getUTCHours() + 3);
         
         const success = await onAddManualEvent({
             employeeId: parseInt(manualEmployeeId),
