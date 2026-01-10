@@ -16,6 +16,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, employees, events })
   const isProcessing = useRef(false);
   const lastActionTime = useRef(0);
 
+  // Função de formatação consistente com AdminDashboard
+  const formatDateTime = (timestamp: string): string => {
+    const date = new Date(timestamp);
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const year = date.getUTCFullYear();
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+    return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
+  };
+
   // Função para verificar se há batidas pendentes há mais de 12 horas
   const checkPendingClocks = (employeeId: number): { hasPending: boolean; lastEvent?: StoredClockEvent } => {
     // Filtrar eventos deste funcionário
@@ -58,7 +70,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, employees, events })
         const { hasPending, lastEvent } = checkPendingClocks(employee.id);
         
         if (hasPending) {
-          const lastEventDate = new Date(lastEvent!.timestamp).toLocaleString('pt-BR');
+          const lastEventDate = formatDateTime(lastEvent!.timestamp);
           setError(`⚠️ Batida pendente desde ${lastEventDate}. Dirija-se ao setor de pessoal para regularizar.`);
           setTimeout(() => {
             setPin('');
