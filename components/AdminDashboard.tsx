@@ -577,10 +577,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             // Subtotal do funcionário - Garantindo 5 vírgulas para alinhar na coluna F (Horas Normais)
             csvContent += `SUBTOTAL ${employeeName},,,,,${formatMilliseconds(employeeTotalNormalMs)},${formatMilliseconds(employeeTotalExtraMs)},${formatMilliseconds(employeeTotalNormalMs + employeeTotalExtraMs)},"${formatCurrency(employeeTotalPayment)}"\n\n`;
 
-            // Declaração Jurídica (Trabalhista) - Em uma única linha sem vírgulas para permitir o "overflow" (passar por cima das colunas)
-            csvContent += `"DECLARAÇÃO: Declaro para os devidos fins que os registros de horários acima discriminados correspondem à fiel realidade da jornada de trabalho desempenhada no período de ${startDate} a ${endDate} nada tendo a reivindicar ou invalidar."\n`;
-            csvContent += `"Assinatura: ____________________________________________________     Data: ____/____/________"\n\n`;
-
             grandTotalNormalMs += employeeTotalNormalMs;
             grandTotalExtraMs += employeeTotalExtraMs;
             grandTotalPayment += employeeTotalPayment;
