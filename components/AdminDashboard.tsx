@@ -217,6 +217,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const jsonBackupInputRef = useRef<HTMLInputElement>(null);
     const [showAddBreakModal, setShowAddBreakModal] = useState<{ employeeId: number, employeeName: string, date: Date } | null>(null);
     const [editingEvent, setEditingEvent] = useState<StoredClockEvent | null>(null);
+    const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string, message: string, onConfirm: () => void } | null>(null);
+
+    const openConfirmModal = (title: string, message: string, onConfirm: () => void) => {
+        setConfirmModal({ isOpen: true, title, message, onConfirm });
+    };
+
+    const closeConfirmModal = () => {
+        setConfirmModal(null);
+    };
 
     // Estados para lançamento manual com persistência em localStorage
     const [manualEmployeeId, setManualEmployeeId] = useState<string>(() => {
@@ -1186,10 +1195,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     </svg>
                                                 </button>
                                                 <button
-                                                    onClick={() => {
-                                                        if (confirm('Deletar este registro?')) {
-                                                            onDeleteEvent(event.id);
-                                                        }
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        openConfirmModal(
+                                                            'Confirmar Exclusão',
+                                                            'Deseja realmente deletar este registro de ponto? Esta ação não pode ser desfeita.',
+                                                            () => onDeleteEvent(event.id)
+                                                        );
                                                     }}
                                                     className="bg-red-600 hover:bg-red-500 p-1 rounded text-xs"
                                                     title="Deletar evento"
@@ -1205,6 +1218,41 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                 )}
             </div>
+
+            {/* Modal de Confirmação Customizado */}
+            {confirmModal && confirmModal.isOpen && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4">
+                    <div className="bg-stone-900 border border-stone-700 rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-6 text-center">
+                        <div>
+                            <div className="bg-red-500/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <DeleteIcon />
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-2">{confirmModal.title}</h3>
+                            <p className="text-gray-400">{confirmModal.message}</p>
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                            <button
+                                onClick={closeConfirmModal}
+                                className="flex-1 bg-stone-800 hover:bg-stone-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={() => {
+                                    confirmModal.onConfirm();
+                                    closeConfirmModal();
+                                }}
+                                className="flex-1 bg-red-600 hover:bg-red-500 text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-red-900/20"
+                            >
+                                Confirmar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <AddBreakModal />
+            <EditEventModal />
 
             {/* Botão de Sair */}
             <button
