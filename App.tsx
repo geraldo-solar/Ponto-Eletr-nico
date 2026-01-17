@@ -11,7 +11,7 @@ const App: React.FC = () => {
   const [loggedInEmployee, setLoggedInEmployee] = useState<Employee | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [allEvents, setAllEvents] = useState<StoredClockEvent[]>([]);
 
@@ -67,7 +67,7 @@ const App: React.FC = () => {
           fetch(`${API_BASE_URL}/api/employees`),
           fetch(`${API_BASE_URL}/api/events`)
         ]);
-        
+
         if (employeesRes.ok) {
           const employeesData = await employeesRes.json();
           // Só atualiza se houve mudança
@@ -78,7 +78,7 @@ const App: React.FC = () => {
             return employeesData;
           });
         }
-        
+
         if (eventsRes.ok) {
           const eventsData = await eventsRes.json();
           const eventsWithDates = eventsData.map((event: any) => ({
@@ -110,7 +110,7 @@ const App: React.FC = () => {
 
   const handleAddEvent = async (type: ClockType) => {
     if (!loggedInEmployee) return;
-    
+
     try {
       // Usar horário local do dispositivo (código original que funcionava)
       const now = new Date();
@@ -121,7 +121,7 @@ const App: React.FC = () => {
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const seconds = String(now.getSeconds()).padStart(2, '0');
       const localTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
-      
+
       const newEvent = {
         employeeId: loggedInEmployee.id,
         employeeName: loggedInEmployee.name,
@@ -186,7 +186,7 @@ const App: React.FC = () => {
       const minutes = String(localDate.getMinutes()).padStart(2, '0');
       const seconds = String(localDate.getSeconds()).padStart(2, '0');
       const utcTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
-      
+
       const newEvent = {
         employeeId: employee.id,
         employeeName: employee.name,
@@ -338,7 +338,7 @@ const App: React.FC = () => {
       const minutes = String(newTimestamp.getMinutes()).padStart(2, '0');
       const seconds = String(newTimestamp.getSeconds()).padStart(2, '0');
       const localTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
-      
+
       const response = await fetch(`${API_BASE_URL}/api/events`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -353,7 +353,7 @@ const App: React.FC = () => {
     }
   };
 
-  const employeeEvents = useMemo(() => 
+  const employeeEvents = useMemo(() =>
     allEvents.filter(event => loggedInEmployee && event.employeeId === loggedInEmployee.id),
     [allEvents, loggedInEmployee]
   );
@@ -362,9 +362,9 @@ const App: React.FC = () => {
 
   const MainComponent = () => {
     if (isAdmin && loggedInEmployee) {
-      return <AdminDashboard 
-        admin={loggedInEmployee} 
-        allEvents={allEvents} 
+      return <AdminDashboard
+        admin={loggedInEmployee}
+        allEvents={allEvents}
         employees={employees}
         onAddEmployee={handleAddEmployee}
         onDeleteEmployee={handleDeleteEmployee}
@@ -377,13 +377,13 @@ const App: React.FC = () => {
         onRefresh={async () => {
           await Promise.all([fetchEmployees(), fetchEvents()]);
         }}
-        onLogout={handleLogout} 
+        onLogout={handleLogout}
       />;
     }
     if (loggedInEmployee) {
-      return <ClockScreen 
-        employee={loggedInEmployee} 
-        onLogout={handleLogout} 
+      return <ClockScreen
+        employee={loggedInEmployee}
+        onLogout={handleLogout}
         events={employeeEvents}
         onAddEvent={handleAddEvent}
       />;

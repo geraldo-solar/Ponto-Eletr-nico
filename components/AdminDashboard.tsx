@@ -16,7 +16,7 @@ const formatBrasiliaDateTime = (timestamp: string | Date): string => {
     const hours = String(date.getUTCHours()).padStart(2, '0');
     const minutes = String(date.getUTCMinutes()).padStart(2, '0');
     const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-    
+
     return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
 };
 
@@ -25,7 +25,7 @@ const formatBrasiliaDate = (timestamp: string | Date): string => {
     const day = String(date.getUTCDate()).padStart(2, '0');
     const month = String(date.getUTCMonth() + 1).padStart(2, '0');
     const year = date.getUTCFullYear();
-    
+
     return `${day}/${month}/${year}`;
 };
 
@@ -34,24 +34,24 @@ const formatBrasiliaTime = (timestamp: string | Date): string => {
     const hours = String(date.getUTCHours()).padStart(2, '0');
     const minutes = String(date.getUTCMinutes()).padStart(2, '0');
     const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-    
+
     return `${hours}:${minutes}:${seconds}`;
 };
 
 interface AdminDashboardProps {
-  admin: Employee;
-  allEvents: StoredClockEvent[];
-  employees: Employee[];
-  onAddEmployee: (employee: Omit<Employee, 'id'>) => void;
-  onDeleteEmployee: (id: number) => void;
-  onUpdateEmployee: (employee: Employee) => void;
-  onImportEmployees: (employees: Omit<Employee, 'id'>[]) => Promise<{ added: number, updated: number, errors: string[] }>;
-  onLogout: () => void;
-  onUpdateEvent: (eventId: number, newTimestamp: Date) => void;
-  onAddManualEvent: (details: { employeeId: number; type: ClockType; timestamp: Date; }) => Promise<boolean>;
-  onDeleteEvent: (eventId: number) => void;
-  onDownloadBackup: () => void;
-  onRefresh: () => Promise<void>;
+    admin: Employee;
+    allEvents: StoredClockEvent[];
+    employees: Employee[];
+    onAddEmployee: (employee: Omit<Employee, 'id'>) => void;
+    onDeleteEmployee: (id: number) => void;
+    onUpdateEmployee: (employee: Employee) => void;
+    onImportEmployees: (employees: Omit<Employee, 'id'>[]) => Promise<{ added: number, updated: number, errors: string[] }>;
+    onLogout: () => void;
+    onUpdateEvent: (eventId: number, newTimestamp: Date) => void;
+    onAddManualEvent: (details: { employeeId: number; type: ClockType; timestamp: Date; }) => Promise<boolean>;
+    onDeleteEvent: (eventId: number) => void;
+    onDownloadBackup: () => void;
+    onRefresh: () => Promise<void>;
 }
 
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000';
@@ -78,7 +78,7 @@ interface WorkDetails {
  */
 const groupEventsByShifts = (events: StoredClockEvent[]): StoredClockEvent[][] => {
     // Ordenar eventos por timestamp
-    const sorted = [...events].sort((a, b) => 
+    const sorted = [...events].sort((a, b) =>
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
 
@@ -94,7 +94,7 @@ const groupEventsByShifts = (events: StoredClockEvent[]): StoredClockEvent[][] =
         } else if (shiftStarted) {
             // Adicionar evento ao turno atual
             currentShift.push(event);
-            
+
             if (event.type === ClockType.Saida) {
                 // Fim do turno
                 shifts.push(currentShift);
@@ -127,7 +127,7 @@ const formatCurrency = (value: number): string => {
 const calculateWorkDetails = (dailyEvents: StoredClockEvent[]): WorkDetails => {
     const defaultPayment = { payment: { normal: 0, extra: 0, total: 0 } };
     const sortedEvents = [...dailyEvents].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-    
+
     let totalMillis = 0;
     let lastTime: number | null = null;
     let isWorking = false;
@@ -152,17 +152,17 @@ const calculateWorkDetails = (dailyEvents: StoredClockEvent[]): WorkDetails => {
 
     const hasEntry = sortedEvents.some(e => e.type === ClockType.Entrada);
     if (!hasEntry) return { total: 0, normal: 0, extra: 0, status: 'no_entry', ...defaultPayment };
-    
+
     const hasExit = sortedEvents.some(e => e.type === ClockType.Saida);
     if (isWorking || !hasExit) {
         return { total: 0, normal: 0, extra: 0, status: 'incomplete', ...defaultPayment };
     }
 
     if (totalMillis < 0) return { total: 0, normal: 0, extra: 0, status: 'error', ...defaultPayment };
-    
+
     const normal = Math.min(totalMillis, NORMAL_WORK_MILLISECONDS);
     const extra = Math.max(0, totalMillis - NORMAL_WORK_MILLISECONDS);
-    
+
     const normalHours = normal / (1000 * 60 * 60);
     const extraHours = extra / (1000 * 60 * 60);
 
@@ -183,29 +183,29 @@ const calculateWorkDetails = (dailyEvents: StoredClockEvent[]): WorkDetails => {
     };
 };
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
-    admin, 
-    allEvents, 
-    employees, 
-    onAddEmployee, 
-    onDeleteEmployee, 
-    onUpdateEmployee, 
-    onImportEmployees, 
-    onLogout, 
-    onUpdateEvent, 
-    onAddManualEvent, 
-    onDeleteEvent, 
+const AdminDashboard: React.FC<AdminDashboardProps> = ({
+    admin,
+    allEvents,
+    employees,
+    onAddEmployee,
+    onDeleteEmployee,
+    onUpdateEmployee,
+    onImportEmployees,
+    onLogout,
+    onUpdateEvent,
+    onAddManualEvent,
+    onDeleteEvent,
     onDownloadBackup,
-    onRefresh 
+    onRefresh
 }) => {
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all');
-    
+
     const [startDate, setStartDate] = useState<string>(() => {
         const now = new Date();
         const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
         return firstDay.toISOString().split('T')[0];
     });
-    
+
     const [endDate, setEndDate] = useState<string>(() => {
         const now = new Date();
         return now.toISOString().split('T')[0];
@@ -215,7 +215,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     const [restoreMessage, setRestoreMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
     const jsonBackupInputRef = useRef<HTMLInputElement>(null);
-    const [showAddBreakModal, setShowAddBreakModal] = useState<{employeeId: number, employeeName: string, date: Date} | null>(null);
+    const [showAddBreakModal, setShowAddBreakModal] = useState<{ employeeId: number, employeeName: string, date: Date } | null>(null);
     const [editingEvent, setEditingEvent] = useState<StoredClockEvent | null>(null);
 
     // Estados para lançamento manual com persistência em localStorage
@@ -249,6 +249,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     React.useEffect(() => {
         localStorage.setItem('manualType', manualType);
     }, [manualType]);
+
+    // Ordenar funcionários por nome para as listas
+    const sortedEmployees = useMemo(() => {
+        return [...employees].sort((a, b) => a.name.localeCompare(b.name));
+    }, [employees]);
 
     const handleAddEmployee = () => {
         if (!newEmployee.name || !newEmployee.pin) {
@@ -322,7 +327,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 }
 
                 const result = await response.json();
-                
+
                 showMessage(
                     `✅ Backup restaurado com sucesso! ${result.employeesCount} funcionários e ${result.eventsCount} batidas importados.`,
                     'success'
@@ -353,7 +358,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         // Criar Date em UTC e ajustar para Brasília (GMT-3)
         const [year, month, day] = manualDate.split('-');
         const [hours, minutes] = manualTime.split(':');
-        
+
         // Criar data em UTC com os valores inseridos
         const dateTime = new Date(Date.UTC(
             parseInt(year),
@@ -364,10 +369,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             0, // segundos
             0  // milissegundos
         ));
-        
+
         // Adicionar 3 horas para compensar GMT-3 → UTC
         dateTime.setUTCHours(dateTime.getUTCHours() + 3);
-        
+
         const success = await onAddManualEvent({
             employeeId: parseInt(manualEmployeeId),
             type: manualType,
@@ -376,17 +381,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         if (success) {
             console.log('[STICKY FORM] Antes:', { manualEmployeeId, manualDate, manualTime, manualType });
-            
+
             // Manter funcionário e data, apenas avançar o horário e tipo
             // IMPORTANTE: Fazer TODAS as atualizações de estado ANTES do alert
             const [hours, minutes] = manualTime.split(':');
             const newHour = parseInt(hours);
             const newMinutes = parseInt(minutes);
-            
+
             // Avançar 1 hora
             const nextHour = (newHour + 1) % 24;
             const newTime = `${String(nextHour).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}`;
-            
+
             // Determinar próximo tipo
             let newType = ClockType.Entrada;
             if (manualType === ClockType.Entrada) {
@@ -396,13 +401,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             } else if (manualType === ClockType.FimIntervalo) {
                 newType = ClockType.Saida;
             }
-            
+
             // Atualizar estados ANTES do alert
             setManualTime(newTime);
             setManualType(newType);
-            
+
             console.log('[STICKY FORM] Novos valores:', { manualEmployeeId, manualDate, newTime, newType });
-            
+
             // Alert por último
             alert('Batida lançada com sucesso!');
         } else {
@@ -427,10 +432,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         console.log('[DEBUG] Calculando periodSummary');
         console.log('[DEBUG] filteredEvents:', filteredEvents);
         console.log('[DEBUG] filteredEvents.length:', filteredEvents.length);
-        
+
         // Agrupar por funcionário primeiro
         const employeeGroups: Record<number, StoredClockEvent[]> = {};
-        
+
         filteredEvents.forEach(event => {
             if (!employeeGroups[event.employeeId]) {
                 employeeGroups[event.employeeId] = [];
@@ -484,7 +489,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         });
 
         let csvContent = `Período:,${startDate} a ${endDate}\n\n`;
-        
+
         let grandTotalNormalMs = 0;
         let grandTotalExtraMs = 0;
         let grandTotalPayment = 0;
@@ -591,7 +596,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const AddBreakModal = () => {
         if (!showAddBreakModal) return null;
-        
+
         const { employeeId, employeeName, date } = showAddBreakModal;
         const [breakStart, setBreakStart] = useState('12:00');
         const [breakEnd, setBreakEnd] = useState('13:00');
@@ -625,35 +630,35 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="bg-stone-800 rounded-xl shadow-2xl p-6 space-y-4 w-full max-w-md">
                     <h3 className="text-xl font-bold text-amber-400">Adicionar Intervalo</h3>
                     <p className="text-gray-300">
-                        Funcionário: <strong>{employeeName}</strong><br/>
+                        Funcionário: <strong>{employeeName}</strong><br />
                         Data: <strong>{formatBrasiliaDate(date)}</strong>
                     </p>
                     <div className="space-y-2">
                         <label className="block text-sm">Início do Intervalo</label>
-                        <input 
-                            type="time" 
-                            value={breakStart} 
+                        <input
+                            type="time"
+                            value={breakStart}
                             onChange={(e) => setBreakStart(e.target.value)}
                             className="w-full bg-emerald-800 text-white p-2 rounded"
                         />
                     </div>
                     <div className="space-y-2">
                         <label className="block text-sm">Fim do Intervalo</label>
-                        <input 
-                            type="time" 
-                            value={breakEnd} 
+                        <input
+                            type="time"
+                            value={breakEnd}
                             onChange={(e) => setBreakEnd(e.target.value)}
                             className="w-full bg-emerald-800 text-white p-2 rounded"
                         />
                     </div>
                     <div className="flex gap-2">
-                        <button 
+                        <button
                             onClick={() => setShowAddBreakModal(null)}
                             className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white py-2 rounded"
                         >
                             Cancelar
                         </button>
-                        <button 
+                        <button
                             onClick={handleAddBreak}
                             className="flex-1 bg-cyan-600 hover:bg-amber-600 text-white py-2 rounded"
                         >
@@ -667,7 +672,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const EditEventModal = () => {
         if (!editingEvent) return null;
-        
+
         const eventDate = new Date(editingEvent.timestamp);
         // Usar getUTC* já que o banco armazena em UTC
         const localYear = eventDate.getUTCFullYear();
@@ -711,7 +716,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
                 <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
                     <h3 className="text-xl font-bold text-amber-400 mb-4">Editar Evento</h3>
-                    
+
                     <div className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1">Funcionário</label>
@@ -722,7 +727,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 className="w-full p-2 bg-gray-700 text-gray-400 rounded"
                             />
                         </div>
-                        
+
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1">Data</label>
                             <input
@@ -732,7 +737,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 className="w-full p-2 bg-gray-700 text-white rounded"
                             />
                         </div>
-                        
+
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1">Horário</label>
                             <input
@@ -742,7 +747,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 className="w-full p-2 bg-gray-700 text-white rounded"
                             />
                         </div>
-                        
+
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1">Tipo</label>
                             <select
@@ -757,7 +762,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </select>
                         </div>
                     </div>
-                    
+
                     <div className="flex gap-2 mt-6">
                         <button
                             onClick={handleSaveEdit}
@@ -781,7 +786,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="space-y-6 pb-8">
             {showAddBreakModal && <AddBreakModal />}
             {editingEvent && <EditEventModal />}
-            
+
             <div className="text-center space-y-2">
                 <h2 className="text-3xl font-bold text-amber-400">{admin.name}</h2>
                 <p className="text-gray-400">Painel Administrativo</p>
@@ -796,7 +801,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {/* Gerenciamento de Funcionários */}
             <div className="bg-emerald-800/50 rounded-lg p-6 space-y-6">
                 <h3 className="text-xl font-semibold border-b border-gray-600 pb-2">Gerenciamento de Funcionários</h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label htmlFor="name" className="block text-sm mb-1">Nome Completo</label>
@@ -900,7 +905,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="pt-4 border-t border-gray-600">
                     <h4 className="text-lg font-semibold mb-2">Funcionários Ativos</h4>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {employees.map(emp => (
+                        {sortedEmployees.map(emp => (
                             <div key={emp.id} className="flex justify-between items-center bg-stone-800 p-3 rounded">
                                 <div>
                                     <p className="font-semibold">{emp.name}</p>
@@ -1017,7 +1022,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {/* Lançamento Manual de Batida */}
             <div className="bg-emerald-800/50 rounded-lg p-6 space-y-4">
                 <h3 className="text-xl font-semibold border-b border-gray-600 pb-2">Lançamento Manual de Batida</h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                         <label htmlFor="manual-employeeId" className="block text-sm mb-1">Funcionário</label>
@@ -1028,7 +1033,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             className="w-full bg-stone-800 text-white p-2 rounded"
                         >
                             <option value="">Selecione...</option>
-                            {employees.map(emp => (
+                            {sortedEmployees.map(emp => (
                                 <option key={emp.id} value={emp.id}>{emp.name}</option>
                             ))}
                         </select>
@@ -1080,7 +1085,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {/* Relatório de Pontos */}
             <div className="bg-emerald-800/50 rounded-lg p-6 space-y-4">
                 <h3 className="text-xl font-semibold border-b border-gray-600 pb-2">Relatório de Pontos</h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label htmlFor="start-date" className="block text-sm mb-1">De:</label>
@@ -1111,7 +1116,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             className="w-full bg-stone-800 text-white p-2 rounded"
                         >
                             <option value="all">Todos os funcionários</option>
-                            {employees.map(emp => (
+                            {sortedEmployees.map(emp => (
                                 <option key={emp.id} value={emp.id}>{emp.name}</option>
                             ))}
                         </select>
@@ -1215,19 +1220,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
 // Comparação customizada para evitar re-renders desnecessários
 const arePropsEqual = (prevProps: AdminDashboardProps, nextProps: AdminDashboardProps) => {
-  // Compara employees por referência (se for o mesmo array, não re-renderiza)
-  if (prevProps.employees !== nextProps.employees) return false;
-  
-  // Compara allEvents pelo ID do último evento
-  const prevLastId = prevProps.allEvents.length > 0 ? prevProps.allEvents[prevProps.allEvents.length - 1].id : null;
-  const nextLastId = nextProps.allEvents.length > 0 ? nextProps.allEvents[nextProps.allEvents.length - 1].id : null;
-  
-  if (prevLastId !== nextLastId || prevProps.allEvents.length !== nextProps.allEvents.length) {
-    return false; // Eventos mudaram, precisa re-renderizar
-  }
-  
-  // Demais props são funções que não mudam
-  return true; // Props iguais, não re-renderiza
+    // Compara employees por referência (se for o mesmo array, não re-renderiza)
+    if (prevProps.employees !== nextProps.employees) return false;
+
+    // Compara allEvents pelo ID do último evento
+    const prevLastId = prevProps.allEvents.length > 0 ? prevProps.allEvents[prevProps.allEvents.length - 1].id : null;
+    const nextLastId = nextProps.allEvents.length > 0 ? nextProps.allEvents[nextProps.allEvents.length - 1].id : null;
+
+    if (prevLastId !== nextLastId || prevProps.allEvents.length !== nextProps.allEvents.length) {
+        return false; // Eventos mudaram, precisa re-renderizar
+    }
+
+    // Demais props são funções que não mudam
+    return true; // Props iguais, não re-renderiza
 };
 
 export default React.memo(AdminDashboard, arePropsEqual);
