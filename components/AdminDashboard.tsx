@@ -574,10 +574,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 csvContent += `${displayDate},${entrada},${inicioIntervalo},${fimIntervalo},${saida},${formatMilliseconds(dayNormalMs)},${formatMilliseconds(dayExtraMs)},${formatMilliseconds(dayNormalMs + dayExtraMs)},"${formatCurrency(dayPayment)}"\n`;
             });
 
-            // Subtotal do funcionário
+            // Subtotal do funcionário - Garantindo 5 vírgulas para alinhar na coluna F (Horas Normais)
             csvContent += `SUBTOTAL ${employeeName},,,,,${formatMilliseconds(employeeTotalNormalMs)},${formatMilliseconds(employeeTotalExtraMs)},${formatMilliseconds(employeeTotalNormalMs + employeeTotalExtraMs)},"${formatCurrency(employeeTotalPayment)}"\n\n`;
 
-            // Declaração Jurídica (Trabalhista) - Separado em duas colunas (Rótulo e Texto) para manter alinhamento
+            // Declaração Jurídica (Trabalhista) - Sem vírgulas internas para não quebrar colunas
             csvContent += `DECLARAÇÃO:,"Declaro para os devidos fins que os registros de horários acima discriminados correspondem à fiel realidade da jornada de trabalho desempenhada no período de ${startDate} a ${endDate} nada tendo a reivindicar ou invalidar."\n`;
             csvContent += `Assinatura:,"____________________________________________________     Data: ____/____/________"\n\n`;
 
@@ -586,7 +586,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             grandTotalPayment += employeeTotalPayment;
         });
 
-        // Total geral
+        // Total geral - Também com 5 vírgulas iniciais para alinhar com a tabela
         csvContent += `\n\n=== TOTAL GERAL ===\n`;
         csvContent += `,,,,,Horas Normais,Horas Extras,Total de Horas,Valor Total a Pagar\n`;
         csvContent += `,,,,,${formatMilliseconds(grandTotalNormalMs)},${formatMilliseconds(grandTotalExtraMs)},${formatMilliseconds(grandTotalNormalMs + grandTotalExtraMs)},"${formatCurrency(grandTotalPayment)}"\n`;
