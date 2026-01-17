@@ -23,28 +23,42 @@ export default async function handler(req, res) {
         FROM events 
         ORDER BY timestamp ASC
       `;
-      
+
       return res.status(200).json(rows);
     }
 
     if (req.method === 'POST') {
       // Adicionar novo evento
       const { employeeId, employeeName, type, timestamp } = req.body;
-      
+
       if (!employeeId || !employeeName || !type || !timestamp) {
         return res.status(400).json({ error: 'Campos obrigatórios: employeeId, employeeName, type, timestamp' });
       }
 
-      // Verificar duplicatas (mesmo funcionário, mesmo tipo, mesmo timestamp)
-      const { rows: existing } = await sql`
+      // Verificar duplicatas (mesmo funcionário, mesmo tipo, mesmo timestamp exato)
+      const { rows: exactDuplicate } = await sql`
         SELECT id FROM events 
         WHERE employee_id = ${employeeId} 
         AND type = ${type} 
         AND timestamp = ${timestamp}
       `;
 
-      if (existing.length > 0) {
+      if (exactDuplicate.length > 0) {
         return res.status(400).json({ error: 'Evento duplicado' });
+      }
+
+      // Verificar batidas muito próximas (mesmo funcionário e tipo nos últimos 60 segundos)
+      // Ajustar o timestamp para garantir que comparamos corretamente
+      const { rows: nearDuplicate } = await sql`
+        SELECT id FROM events 
+        WHERE employee_id = ${employeeId} 
+        AND type = ${type} 
+        AND timestamp > CAST(${timestamp} AS TIMESTAMP) - INTERVAL '1 minute'
+        AND timestamp <= CAST(${timestamp} AS TIMESTAMP)
+      `;
+
+      if (nearDuplicate.length > 0) {
+        return res.status(400).json({ error: 'Você já registrou este tipo de batida há menos de 1 minuto.' });
       }
 
       const { rows } = await sql`
@@ -59,7 +73,7 @@ export default async function handler(req, res) {
     if (req.method === 'PUT') {
       // Atualizar evento existente (editar timestamp e/ou type)
       const { id, timestamp, type } = req.body;
-      
+
       if (!id) {
         return res.status(400).json({ error: 'Campo obrigatório: id' });
       }
@@ -67,33 +81,33 @@ export default async function handler(req, res) {
       // Construir query dinamicamente baseado nos campos fornecidos
       let updateFields = [];
       let values = [];
-      
+
       if (timestamp) {
         updateFields.push('timestamp = $' + (values.length + 1));
         values.push(timestamp);
       }
-      
+
       if (type) {
         updateFields.push('type = $' + (values.length + 1));
         values.push(type);
       }
-      
+
       if (updateFields.length === 0) {
         return res.status(400).json({ error: 'Nenhum campo para atualizar' });
       }
-      
+
       values.push(id); // ID é sempre o último parâmetro
-      
+
       const query = `
         UPDATE events 
         SET ${updateFields.join(', ')}
         WHERE id = $${values.length}
         RETURNING id, employee_id as "employeeId", employee_name as "employeeName", type, timestamp
       `;
-      
+
       console.log('UPDATE Query:', query);
       console.log('UPDATE Values:', values);
-      
+
       const { rows } = await sql.query(query, values);
 
       if (rows.length === 0) {
@@ -106,7 +120,7 @@ export default async function handler(req, res) {
     if (req.method === 'DELETE') {
       // Deletar evento
       const { id } = req.query;
-      
+
       if (!id) {
         return res.status(400).json({ error: 'ID é obrigatório' });
       }

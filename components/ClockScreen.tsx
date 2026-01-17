@@ -16,37 +16,44 @@ const formatBrasiliaTime = (timestamp: string | Date): string => {
 };
 
 interface ClockScreenProps {
-  employee: Employee;
-  onLogout: () => void;
-  events: StoredClockEvent[];
-  onAddEvent: (type: ClockType) => Promise<void>;
+    employee: Employee;
+    onLogout: () => void;
+    events: StoredClockEvent[];
+    onAddEvent: (type: ClockType) => Promise<void>;
 }
 
 const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, onAddEvent }) => {
     const [isSuccess, setIsSuccess] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
-    
+
     const lastEvent = events.length > 0 ? events[events.length - 1] : null;
 
     const handleClockEvent = async (type: ClockType) => {
         if (isSuccess) return;
-        await onAddEvent(type);
-        setSuccessMessage(`Registro de "${type}" realizado com sucesso!`);
-        setIsSuccess(true);
-        setTimeout(() => {
-            onLogout();
-        }, 2000);
+
+        try {
+            await onAddEvent(type);
+            setSuccessMessage(`Registro de "${type}" realizado com sucesso!`);
+            setIsSuccess(true);
+            setTimeout(() => {
+                onLogout();
+            }, 2000);
+        } catch (error: any) {
+            console.error("Erro ao registrar ponto:", error);
+            // Se o erro vier da API como string ou objeto com mensagem
+            alert(error.message || "Erro ao registrar o ponto. Tente novamente.");
+        }
     };
 
     const enabledActions = useMemo(() => {
         if (!events || events.length === 0) return [ClockType.Entrada];
-        
+
         const todayEvents = events
             .filter(e => new Date(e.timestamp).toDateString() === new Date().toDateString())
-            .sort((a,b) => a.timestamp.getTime() - b.timestamp.getTime());
+            .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
         if (todayEvents.length === 0) return [ClockType.Entrada];
-        
+
         const lastTodayEvent = todayEvents[todayEvents.length - 1];
 
         switch (lastTodayEvent.type) {
@@ -68,14 +75,14 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
         if (!enabledActions.includes(type)) {
             return `${base} bg-emerald-800 text-gray-500 cursor-not-allowed`;
         }
-        switch(type) {
+        switch (type) {
             case ClockType.Entrada: return `${base} bg-green-600 hover:bg-green-500`;
             case ClockType.InicioIntervalo: return `${base} bg-yellow-600 hover:bg-yellow-500`;
             case ClockType.FimIntervalo: return `${base} bg-blue-600 hover:bg-blue-500`;
             case ClockType.Saida: return `${base} bg-red-600 hover:bg-red-500`;
         }
     }
-    
+
     const todayEvents = useMemo(() => {
         return [...events]
             .filter(e => new Date(e.timestamp).toDateString() === new Date().toDateString())
@@ -89,7 +96,7 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
                 <p className="text-gray-400">Bem-vindo(a)!</p>
             </div>
             <Clock />
-            
+
             {isSuccess ? (
                 <div className="flex flex-col items-center justify-center text-center py-8 space-y-4 animate-fade-in">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

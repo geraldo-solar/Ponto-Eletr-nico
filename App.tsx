@@ -137,9 +137,13 @@ const App: React.FC = () => {
 
       if (response.ok) {
         await fetchEvents(); // Atualizar lista imediatamente
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao registrar');
       }
     } catch (error) {
       console.error("Erro ao adicionar evento:", error);
+      throw error;
     }
   };
 
