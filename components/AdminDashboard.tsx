@@ -479,9 +479,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         };
     }, [filteredEvents]);
 
-    const handleExportCSV = () => {
+    const handlePrintReport = () => {
         if (filteredEvents.length === 0) {
-            alert('Nenhum registro para exportar');
+            alert('Nenhum registro para imprimir');
             return;
         }
 
@@ -494,58 +494,70 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             employeeGroups[event.employeeId].push(event);
         });
 
-        let csvContent = `Período:,${startDate} a ${endDate}\n\n`;
-
-        let grandTotalNormalMs = 0;
-        let grandTotalExtraMs = 0;
-        let grandTotalPayment = 0;
-
         // Ordenar funcionários por nome
         const sortedEmployees = Object.entries(employeeGroups).sort((a, b) => {
             return a[1][0].employeeName.localeCompare(b[1][0].employeeName);
         });
 
-        sortedEmployees.forEach(([employeeId, empEvents]) => {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Espelho de Ponto - ${startDate} a ${endDate}</title>
+                <style>
+                    body { font-family: sans-serif; padding: 20px; color: #333; }
+                    .page-break { page-break-after: always; }
+                    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+                    .employee-info { margin-bottom: 20px; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; font-size: 12px; }
+                    th { background-color: #f2f2f2; }
+                    .subtotal-row { font-weight: bold; background-color: #f9f9f9; }
+                    .legal-declaration { margin-top: 40px; border-top: 1px solid #333; padding-top: 20px; }
+                    .signature-block { margin-top: 50px; display: flex; justify-content: space-between; }
+                    .signature-line { border-top: 1px solid #333; width: 300px; text-align: center; padding-top: 5px; }
+                    @media print {
+                        .no-print { display: none; }
+                        body { padding: 0; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="no-print" style="background: #fdf6e3; padding: 10px; margin-bottom: 20px; text-align: center; border: 1px solid #eee;">
+                    <button onclick="window.print()" style="padding: 10px 20px; background: #22c55e; color: white; border: none; borderRadius: 5px; cursor: pointer; fontWeight: bold;">IMPRIMIR RELATÓRIO</button>
+                    <p style="font-size: 12px; margin-top: 5px;">Dica: Selecione "Salvar como PDF" no destino da impressão.</p>
+                </div>
+
+                ${sortedEmployees.map(([employeeId, empEvents]) => {
             const employee = employees.find(e => e.id === parseInt(employeeId));
             const funcao = employee?.funcao || '';
             const employeeName = empEvents[0].employeeName;
-
-            // Cabeçalho do funcionário
-            csvContent += `\n=== ${employeeName} - ${funcao} ===\n`;
-            csvContent += `Data,Entrada,Início Intervalo,Fim Intervalo,Saída,Horas Normais,Horas Extras,Total Horas,Valor Dia\n`;
 
             // Agrupar eventos por data
             const eventsByDate: Record<string, StoredClockEvent[]> = {};
             empEvents.forEach(event => {
                 const eventDate = new Date(event.timestamp);
                 const dateKey = `${String(eventDate.getUTCFullYear())}-${String(eventDate.getUTCMonth() + 1).padStart(2, '0')}-${String(eventDate.getUTCDate()).padStart(2, '0')}`;
-                if (!eventsByDate[dateKey]) {
-                    eventsByDate[dateKey] = [];
-                }
+                if (!eventsByDate[dateKey]) eventsByDate[dateKey] = [];
                 eventsByDate[dateKey].push(event);
             });
 
-            // Ordenar datas
             const sortedDates = Object.keys(eventsByDate).sort();
-
             let employeeTotalNormalMs = 0;
             let employeeTotalExtraMs = 0;
             let employeeTotalPayment = 0;
 
-            sortedDates.forEach(dateKey => {
+            const tableRows = sortedDates.map(dateKey => {
                 const dayEvents = eventsByDate[dateKey];
                 const shifts = groupEventsByShifts(dayEvents);
-
                 let dayNormalMs = 0;
                 let dayExtraMs = 0;
                 let dayPayment = 0;
 
-                // Coletar horários das batidas
-                let entrada = '';
-                let inicioIntervalo = '';
-                let fimIntervalo = '';
-                let saida = '';
-
+                let entrada = '', inicioIntervalo = '', fimIntervalo = '', saida = '';
                 dayEvents.forEach(event => {
                     const time = formatBrasiliaTime(event.timestamp);
                     if (event.type === 'Entrada') entrada = time;
@@ -567,37 +579,82 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 employeeTotalExtraMs += dayExtraMs;
                 employeeTotalPayment += dayPayment;
 
-                // Formatar data para exibição
                 const [year, month, day] = dateKey.split('-');
-                const displayDate = `${day}/${month}/${year}`;
+                return `
+                            <tr>
+                                <td>${day}/${month}/${year}</td>
+                                <td>${entrada}</td>
+                                <td>${inicioIntervalo}</td>
+                                <td>${fimIntervalo}</td>
+                                <td>${saida}</td>
+                                <td>${formatMilliseconds(dayNormalMs)}</td>
+                                <td>${formatMilliseconds(dayExtraMs)}</td>
+                                <td>${formatMilliseconds(dayNormalMs + dayExtraMs)}</td>
+                                <td>${formatCurrency(dayPayment)}</td>
+                            </tr>
+                        `;
+            }).join('');
 
-                csvContent += `${displayDate},${entrada},${inicioIntervalo},${fimIntervalo},${saida},${formatMilliseconds(dayNormalMs)},${formatMilliseconds(dayExtraMs)},${formatMilliseconds(dayNormalMs + dayExtraMs)},"${formatCurrency(dayPayment)}"\n`;
-            });
+            return `
+                        <div class="page">
+                            <div class="header">
+                                <h2>ESPELHO DE PONTO ELETRÔNICO</h2>
+                                <p>Período: ${startDate.split('-').reverse().join('/')} a ${endDate.split('-').reverse().join('/')}</p>
+                            </div>
+                            
+                            <div class="employee-info">
+                                <p><strong>Funcionário:</strong> ${employeeName}</p>
+                                <p><strong>CPF:</strong> ${employee?.cpf || '---'} | <strong>Função:</strong> ${funcao}</p>
+                            </div>
 
-            // Subtotal do funcionário - Garantindo 5 vírgulas para alinhar na coluna F (Horas Normais)
-            csvContent += `SUBTOTAL ${employeeName},,,,,${formatMilliseconds(employeeTotalNormalMs)},${formatMilliseconds(employeeTotalExtraMs)},${formatMilliseconds(employeeTotalNormalMs + employeeTotalExtraMs)},"${formatCurrency(employeeTotalPayment)}"\n\n`;
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Entrada</th>
+                                        <th>Início Intervalo</th>
+                                        <th>Fim Intervalo</th>
+                                        <th>Saída</th>
+                                        <th>H. Normais</th>
+                                        <th>H. Extras</th>
+                                        <th>Total Horas</th>
+                                        <th>Valor Dia</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${tableRows}
+                                    <tr class="subtotal-row">
+                                        <td colspan="5">SUBTOTAL</td>
+                                        <td>${formatMilliseconds(employeeTotalNormalMs)}</td>
+                                        <td>${formatMilliseconds(employeeTotalExtraMs)}</td>
+                                        <td>${formatMilliseconds(employeeTotalNormalMs + employeeTotalExtraMs)}</td>
+                                        <td>${formatCurrency(employeeTotalPayment)}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
 
-            grandTotalNormalMs += employeeTotalNormalMs;
-            grandTotalExtraMs += employeeTotalExtraMs;
-            grandTotalPayment += employeeTotalPayment;
-        });
+                            <div class="legal-declaration">
+                                <p><strong>DECLARAÇÃO:</strong> Declaro para os devidos fins que os registros de horários acima discriminados correspondem à fiel realidade da jornada de trabalho desempenhada no período acima citado, nada tendo a reivindicar ou invalidar.</p>
+                                
+                                <div class="signature-block">
+                                    <div class="signature-line">
+                                        Assinatura do Funcionário
+                                    </div>
+                                    <div class="signature-line" style="width: 200px;">
+                                        Data: ____/____/________
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="page-break"></div>
+                    `;
+        }).join('')}
+            </body>
+            </html>
+        `;
 
-        // Total geral - Também com 5 vírgulas iniciais para alinhar com a tabela
-        csvContent += `\n\n=== TOTAL GERAL ===\n`;
-        csvContent += `,,,,,Horas Normais,Horas Extras,Total de Horas,Valor Total a Pagar\n`;
-        csvContent += `,,,,,${formatMilliseconds(grandTotalNormalMs)},${formatMilliseconds(grandTotalExtraMs)},${formatMilliseconds(grandTotalNormalMs + grandTotalExtraMs)},"${formatCurrency(grandTotalPayment)}"\n`;
-
-        // Adicionar BOM UTF-8 para garantir codificação correta no Excel/Windows/Android
-        const BOM = '\uFEFF';
-        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `relatorio_detalhado_${startDate}_${endDate}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
     };
 
     const AddBreakModal = () => {
@@ -1154,11 +1211,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 <button
-                    onClick={handleExportCSV}
-                    className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                    onClick={handlePrintReport}
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
                 >
-                    <DownloadIcon />
-                    Exportar para CSV
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Imprimir Espelho de Ponto
                 </button>
 
                 {filteredEvents.length === 0 ? (
