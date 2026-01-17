@@ -300,64 +300,61 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             setTimeout(() => setRestoreMessage(null), 10000);
         };
 
-        // Confirmar com o usuário
-        const confirmed = confirm(
-            '⚠️ ATENÇÃO: Esta ação irá SUBSTITUIR TODOS os dados atuais (funcionários e batidas) pelos dados do backup.\n\nDeseja continuar?'
+        // Confirmar com o usuário usando o modal customizado
+        openConfirmModal(
+            '⚠️ ATENÇÃO: Substituir Dados',
+            'Esta ação irá SUBSTITUIR TODOS os dados atuais (funcionários e batidas) pelos dados do backup. Deseja continuar?',
+            () => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const text = e.target?.result as string;
+                        const backupData = JSON.parse(text);
+
+                        if (!backupData.employees || !backupData.events) {
+                            throw new Error("Arquivo de backup inválido. Esperado: {employees: [], events: []}");
+                        }
+
+                        showMessage('🔄 Restaurando backup... Aguarde.', 'success');
+
+                        // Chamar API para restaurar backup
+                        const response = await fetch('/api/restore-backup', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(backupData)
+                        });
+
+                        if (!response.ok) {
+                            const error = await response.json();
+                            console.error('[handleRestoreBackup] Erro da API:', error);
+                            throw new Error(error.error || 'Erro ao restaurar backup');
+                        }
+
+                        const result = await response.json();
+
+                        showMessage(
+                            `✅ Backup restaurado com sucesso! ${result.employeesCount} funcionários e ${result.eventsCount} batidas importados.`,
+                            'success'
+                        );
+
+                        // Atualizar dados na interface
+                        await onRefresh();
+
+                        if (event.target) event.target.value = '';
+                    } catch (error: any) {
+                        showMessage(error.message || "Erro ao processar o arquivo de backup.", 'error');
+                        if (event.target) event.target.value = '';
+                    }
+                };
+                reader.onerror = () => {
+                    showMessage("Erro ao ler o arquivo.", 'error');
+                };
+                reader.readAsText(file);
+            }
         );
 
-        if (!confirmed) {
-            if (event.target) event.target.value = '';
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const text = e.target?.result as string;
-                const backupData = JSON.parse(text);
-
-                if (!backupData.employees || !backupData.events) {
-                    throw new Error("Arquivo de backup inválido. Esperado: {employees: [], events: []}");
-                }
-
-                showMessage('🔄 Restaurando backup... Aguarde.', 'success');
-
-                // Chamar API para restaurar backup
-                const response = await fetch('/api/restore-backup', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(backupData)
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    console.error('[handleRestoreBackup] Erro da API:', error);
-                    throw new Error(error.error || 'Erro ao restaurar backup');
-                }
-
-                const result = await response.json();
-
-                showMessage(
-                    `✅ Backup restaurado com sucesso! ${result.employeesCount} funcionários e ${result.eventsCount} batidas importados.`,
-                    'success'
-                );
-
-                // Atualizar dados na interface
-                await onRefresh();
-
-                if (event.target) event.target.value = '';
-            } catch (error: any) {
-                showMessage(error.message || "Erro ao processar o arquivo de backup.", 'error');
-                if (event.target) event.target.value = '';
-            }
-        };
-        reader.onerror = () => {
-            showMessage("Erro ao ler o arquivo.", 'error');
-            if (event.target) event.target.value = '';
-        };
-        reader.readAsText(file);
+        if (event.target) event.target.value = '';
     };
-
     const handleLaunchManualEvent = async () => {
         if (!manualEmployeeId) {
             alert('Selecione um funcionário');
@@ -932,9 +929,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </button>
                                     <button
                                         onClick={() => {
-                                            if (confirm(`Deletar ${emp.name}?`)) {
-                                                onDeleteEmployee(emp.id);
-                                            }
+                                            openConfirmModal(
+                                                'Excluir Funcionário',
+                                                `Deseja realmente excluir o funcionário ${emp.name}? Todos os seus registros também serão apagados.`,
+                                                () => onDeleteEmployee(emp.id)
+                                            );
                                         }}
                                         className="bg-red-600 hover:bg-red-500 p-2 rounded"
                                         title="Excluir funcionário"
