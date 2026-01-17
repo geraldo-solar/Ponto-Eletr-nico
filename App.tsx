@@ -28,10 +28,11 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Função para buscar eventos da API
+  // Função para buscar eventos da API com cache-buster
   const fetchEvents = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/events`);
+      // Adiciona um timestamp para evitar cache do navegador
+      const response = await fetch(`${API_BASE_URL}/api/events?t=${Date.now()}`);
       if (response.ok) {
         const data = await response.json();
         const eventsWithDates = data.map((event: any) => ({
@@ -228,10 +229,17 @@ const App: React.FC = () => {
       });
 
       if (response.ok) {
+        // Aguarda um pequeno delay e recarrega os eventos
         await fetchEvents();
+        // Não precisa de alert de sucesso para não interromper o fluxo, 
+        // mas o refresh agora é garantido
+      } else {
+        const error = await response.json();
+        alert(`Erro ao deletar: ${error.error || 'Erro desconhecido'}`);
       }
     } catch (error) {
       console.error("Erro ao deletar evento:", error);
+      alert("Erro de conexão ao tentar deletar o registro.");
     }
   };
 
