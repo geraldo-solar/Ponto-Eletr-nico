@@ -575,7 +575,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             });
 
             // Subtotal do funcionário
-            csvContent += `SUBTOTAL ${employeeName},,,,,,${formatMilliseconds(employeeTotalNormalMs)},${formatMilliseconds(employeeTotalExtraMs)},${formatMilliseconds(employeeTotalNormalMs + employeeTotalExtraMs)},"${formatCurrency(employeeTotalPayment)}"\n`;
+            csvContent += `SUBTOTAL ${employeeName},,,,,${formatMilliseconds(employeeTotalNormalMs)},${formatMilliseconds(employeeTotalExtraMs)},${formatMilliseconds(employeeTotalNormalMs + employeeTotalExtraMs)},"${formatCurrency(employeeTotalPayment)}"\n`;
 
             grandTotalNormalMs += employeeTotalNormalMs;
             grandTotalExtraMs += employeeTotalExtraMs;
@@ -584,8 +584,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         // Total geral
         csvContent += `\n\n=== TOTAL GERAL ===\n`;
-        csvContent += `Horas Normais,Horas Extras,Total de Horas,Valor Total a Pagar\n`;
-        csvContent += `${formatMilliseconds(grandTotalNormalMs)},${formatMilliseconds(grandTotalExtraMs)},${formatMilliseconds(grandTotalNormalMs + grandTotalExtraMs)},"${formatCurrency(grandTotalPayment)}"\n`;
+        csvContent += `,,,,,Horas Normais,Horas Extras,Total de Horas,Valor Total a Pagar\n`;
+        csvContent += `,,,,,${formatMilliseconds(grandTotalNormalMs)},${formatMilliseconds(grandTotalExtraMs)},${formatMilliseconds(grandTotalNormalMs + grandTotalExtraMs)},"${formatCurrency(grandTotalPayment)}"\n`;
 
         // Adicionar BOM UTF-8 para garantir codificação correta no Excel/Windows/Android
         const BOM = '\uFEFF';
