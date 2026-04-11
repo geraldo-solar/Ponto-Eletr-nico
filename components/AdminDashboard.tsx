@@ -689,41 +689,41 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         };
 
         return (
-            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-                <div className="bg-stone-800 rounded-xl shadow-2xl p-6 space-y-4 w-full max-w-md">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                <div className="glass-panel space-y-4 w-full max-w-md">
                     <h3 className="text-xl font-bold text-amber-400">Adicionar Intervalo</h3>
                     <p className="text-gray-300">
                         Funcionário: <strong>{employeeName}</strong><br />
                         Data: <strong>{formatBrasiliaDate(date)}</strong>
                     </p>
                     <div className="space-y-2">
-                        <label className="block text-sm">Início do Intervalo</label>
+                        <label className="block font-semibold text-muted mb-2">Início do Intervalo</label>
                         <input
                             type="time"
                             value={breakStart}
                             onChange={(e) => setBreakStart(e.target.value)}
-                            className="w-full bg-emerald-800 text-white p-2 rounded"
+                            className="input"
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="block text-sm">Fim do Intervalo</label>
+                        <label className="block font-semibold text-muted mb-2">Fim do Intervalo</label>
                         <input
                             type="time"
                             value={breakEnd}
                             onChange={(e) => setBreakEnd(e.target.value)}
-                            className="w-full bg-emerald-800 text-white p-2 rounded"
+                            className="input"
                         />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 pt-2">
                         <button
                             onClick={() => setShowAddBreakModal(null)}
-                            className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white py-2 rounded"
+                            className="btn btn-outline flex-1"
                         >
                             Cancelar
                         </button>
                         <button
                             onClick={handleAddBreak}
-                            className="flex-1 bg-cyan-600 hover:bg-amber-600 text-white py-2 rounded"
+                            className="btn btn-primary flex-1"
                         >
                             Adicionar
                         </button>
@@ -776,47 +776,47 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         };
 
         return (
-            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-                <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                <div className="glass-panel space-y-4 max-w-md w-full">
                     <h3 className="text-xl font-bold text-amber-400 mb-4">Editar Evento</h3>
 
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">Funcionário</label>
+                            <label className="block font-semibold text-muted mb-2">Funcionário</label>
                             <input
                                 type="text"
                                 value={editingEvent.employeeName}
                                 disabled
-                                className="w-full p-2 bg-gray-700 text-gray-400 rounded"
+                                className="input opacity-50 cursor-not-allowed"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">Data</label>
+                            <label className="block font-semibold text-muted mb-2">Data</label>
                             <input
                                 type="date"
                                 value={editDate}
                                 onChange={(e) => setEditDate(e.target.value)}
-                                className="w-full p-2 bg-gray-700 text-white rounded"
+                                className="input"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">Horário</label>
+                            <label className="block font-semibold text-muted mb-2">Horário</label>
                             <input
                                 type="time"
                                 value={editTime}
                                 onChange={(e) => setEditTime(e.target.value)}
-                                className="w-full p-2 bg-gray-700 text-white rounded"
+                                className="input"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">Tipo</label>
+                            <label className="block font-semibold text-muted mb-2">Tipo</label>
                             <select
                                 value={editType}
                                 onChange={(e) => setEditType(e.target.value as ClockType)}
-                                className="w-full p-2 bg-gray-700 text-white rounded"
+                                className="input"
                             >
                                 <option value={ClockType.Entrada}>Entrada</option>
                                 <option value={ClockType.InicioIntervalo}>Início Intervalo</option>
@@ -826,18 +826,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
                     </div>
 
-                    <div className="flex gap-2 mt-6">
-                        <button
-                            onClick={handleSaveEdit}
-                            className="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded"
-                        >
-                            Salvar
-                        </button>
+                    <div className="flex gap-2 pt-4">
                         <button
                             onClick={() => setEditingEvent(null)}
-                            className="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded"
+                            className="btn btn-outline flex-1"
                         >
                             Cancelar
+                        </button>
+                        <button
+                            onClick={handleSaveEdit}
+                            className="btn btn-primary flex-1"
+                        >
+                            Salvar
                         </button>
                     </div>
                 </div>
@@ -850,120 +850,90 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {showAddBreakModal && <AddBreakModal />}
             {editingEvent && <EditEventModal />}
 
-            <div className="text-center space-y-2">
-                <h2 className="text-3xl font-bold text-amber-400">{admin.name}</h2>
-                <p className="text-gray-400">Painel Administrativo</p>
-                <button
-                    onClick={onRefresh}
-                    className="mt-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors text-sm"
-                >
-                    🔄 Atualizar Dados
-                </button>
+            <div className="text-center space-y-2 mb-6">
+                <h2 className="text-3xl font-bold text-gold" style={{textTransform: 'uppercase'}}>{admin.name}</h2>
+                <p className="text-muted">Painel Administrativo</p>
             </div>
 
             {/* Gerenciamento de Funcionários */}
-            <div className="bg-emerald-800/50 rounded-lg p-6 space-y-6">
+            <div className="glass-panel space-y-6">
                 <h3 className="text-xl font-semibold border-b border-gray-600 pb-2">Gerenciamento de Funcionários</h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label htmlFor="name" className="block text-sm mb-1">Nome Completo</label>
+                        <label htmlFor="name" className="block font-semibold text-muted mb-2">Nome Completo</label>
                         <input
                             id="name"
                             type="text"
                             value={newEmployee.name}
                             onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
-                            className="w-full bg-stone-800 text-white p-2 rounded"
+                            className="input"
                         />
                     </div>
                     <div>
-                        <label htmlFor="phone" className="block text-sm mb-1">Telefone</label>
+                        <label htmlFor="phone" className="block font-semibold text-muted mb-2">Telefone</label>
                         <input
                             id="phone"
                             type="tel"
                             value={newEmployee.phone}
                             onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
-                            className="w-full bg-stone-800 text-white p-2 rounded"
+                            className="input"
                         />
                     </div>
                     <div>
-                        <label htmlFor="pin" className="block text-sm mb-1">PIN</label>
+                        <label htmlFor="pin" className="block font-semibold text-muted mb-2">PIN</label>
                         <input
                             id="pin"
                             type="password"
                             maxLength={PIN_LENGTH}
                             value={newEmployee.pin}
                             onChange={(e) => setNewEmployee({ ...newEmployee, pin: e.target.value })}
-                            className="w-full bg-stone-800 text-white p-2 rounded"
+                            className="input"
                         />
                     </div>
                     <div>
-                        <label htmlFor="cpf" className="block text-sm mb-1">CPF</label>
+                        <label htmlFor="cpf" className="block font-semibold text-muted mb-2">CPF</label>
                         <input
                             id="cpf"
                             type="text"
                             value={newEmployee.cpf}
                             onChange={(e) => setNewEmployee({ ...newEmployee, cpf: e.target.value })}
                             placeholder="000.000.000-00"
-                            className="w-full bg-stone-800 text-white p-2 rounded"
+                            className="input"
                         />
                     </div>
                     <div>
-                        <label htmlFor="funcao" className="block text-sm mb-1">Função</label>
+                        <label htmlFor="funcao" className="block font-semibold text-muted mb-2">Função</label>
                         <input
                             id="funcao"
                             type="text"
                             value={newEmployee.funcao}
                             onChange={(e) => setNewEmployee({ ...newEmployee, funcao: e.target.value })}
                             placeholder="Ex: Vendedor, Gerente"
-                            className="w-full bg-stone-800 text-white p-2 rounded"
+                            className="input"
                         />
                     </div>
                     <div>
-                        <label htmlFor="pix" className="block text-sm mb-1">PIX</label>
+                        <label htmlFor="pix" className="block font-semibold text-muted mb-2">PIX</label>
                         <input
                             id="pix"
                             type="text"
                             value={newEmployee.pix}
                             onChange={(e) => setNewEmployee({ ...newEmployee, pix: e.target.value })}
                             placeholder="CPF, e-mail, telefone ou chave aleatória"
-                            className="w-full bg-stone-800 text-white p-2 rounded"
+                            className="input"
                         />
                     </div>
                 </div>
 
                 <button
                     onClick={handleAddEmployee}
-                    className="w-full bg-cyan-600 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                    className="btn btn-primary w-full"
                 >
                     Cadastrar Funcionário
                 </button>
 
-                <div className="pt-4 border-t border-gray-600">
-                    <h4 className="text-lg font-semibold mb-2">Restaurar Backup Completo</h4>
-                    <p className="text-sm text-gray-400 mb-2">
-                        Restaure um backup completo (funcionários + batidas) de um arquivo JSON. <strong className="text-amber-400">⚠️ Isso irá substituir todos os dados atuais!</strong>
-                    </p>
-                    <button
-                        onClick={() => jsonBackupInputRef.current?.click()}
-                        className="w-full bg-blue-700 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                    >
-                        <UploadIcon />
-                        Restaurar Backup JSON
-                    </button>
-                    <input
-                        type="file"
-                        ref={jsonBackupInputRef}
-                        onChange={handleRestoreBackup}
-                        accept=".json"
-                        className="hidden"
-                    />
-                    {restoreMessage && (
-                        <div className={`mt-2 text-center text-sm font-semibold p-2 rounded-md ${restoreMessage.type === 'success' ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
-                            {restoreMessage.text}
-                        </div>
-                    )}
-                </div>
+
 
                 <div className="pt-4 border-t border-gray-600">
                     <h4 className="text-lg font-semibold mb-2">Funcionários Ativos</h4>
@@ -976,13 +946,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     {emp.funcao && <p className="text-sm text-gray-400">Função: {emp.funcao}</p>}
                                     {emp.cpf && <p className="text-sm text-gray-400">CPF: {emp.cpf}</p>}
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex flex-col sm:flex-row gap-2 mt-2 sm:mt-0">
                                     <button
                                         onClick={() => setEditingEmployee(emp)}
-                                        className="bg-blue-600 hover:bg-blue-500 p-2 rounded"
+                                        className="btn btn-outline text-sm py-1 px-3"
                                         title="Editar funcionário"
+                                        style={{borderColor: 'rgba(255,255,255,0.2)'}}
                                     >
-                                        <EditIcon />
+                                        <EditIcon /> Editar
                                     </button>
                                     <button
                                         onClick={() => {
@@ -992,10 +963,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 () => onDeleteEmployee(emp.id)
                                             );
                                         }}
-                                        className="bg-red-600 hover:bg-red-500 p-2 rounded"
+                                        className="btn btn-outline text-sm py-1 px-3"
                                         title="Excluir funcionário"
+                                        style={{color: 'var(--color-red)', borderColor: 'rgba(220,38,38,0.3)'}}
+                                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(220,38,38,0.1)'}
+                                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                     >
-                                        <DeleteIcon />
+                                        <DeleteIcon /> Excluir
                                     </button>
                                 </div>
                             </div>
@@ -1008,61 +982,61 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <div className="bg-stone-800 rounded-xl shadow-2xl p-6 space-y-4 w-full max-w-md">
                             <h3 className="text-xl font-bold text-amber-400">Editar Funcionário</h3>
                             <div>
-                                <label className="block text-sm mb-1">Nome</label>
+                                <label className="block font-semibold text-muted mb-2">Nome</label>
                                 <input
                                     type="text"
                                     value={editingEmployee.name}
                                     onChange={(e) => setEditingEmployee({ ...editingEmployee, name: e.target.value })}
-                                    className="w-full bg-emerald-800 text-white p-2 rounded"
+                                    className="input"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm mb-1">Telefone</label>
+                                <label className="block font-semibold text-muted mb-2">Telefone</label>
                                 <input
                                     type="tel"
                                     value={editingEmployee.phone}
                                     onChange={(e) => setEditingEmployee({ ...editingEmployee, phone: e.target.value })}
-                                    className="w-full bg-emerald-800 text-white p-2 rounded"
+                                    className="input"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm mb-1">PIN</label>
+                                <label className="block font-semibold text-muted mb-2">PIN</label>
                                 <input
                                     type="password"
                                     maxLength={PIN_LENGTH}
                                     value={editingEmployee.pin}
                                     onChange={(e) => setEditingEmployee({ ...editingEmployee, pin: e.target.value })}
-                                    className="w-full bg-emerald-800 text-white p-2 rounded"
+                                    className="input"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm mb-1">CPF</label>
+                                <label className="block font-semibold text-muted mb-2">CPF</label>
                                 <input
                                     type="text"
                                     value={editingEmployee.cpf || ''}
                                     onChange={(e) => setEditingEmployee({ ...editingEmployee, cpf: e.target.value })}
                                     placeholder="000.000.000-00"
-                                    className="w-full bg-emerald-800 text-white p-2 rounded"
+                                    className="input"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm mb-1">Função</label>
+                                <label className="block font-semibold text-muted mb-2">Função</label>
                                 <input
                                     type="text"
                                     value={editingEmployee.funcao || ''}
                                     onChange={(e) => setEditingEmployee({ ...editingEmployee, funcao: e.target.value })}
                                     placeholder="Ex: Vendedor, Gerente"
-                                    className="w-full bg-emerald-800 text-white p-2 rounded"
+                                    className="input"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm mb-1">PIX</label>
+                                <label className="block font-semibold text-muted mb-2">PIX</label>
                                 <input
                                     type="text"
                                     value={editingEmployee.pix || ''}
                                     onChange={(e) => setEditingEmployee({ ...editingEmployee, pix: e.target.value })}
                                     placeholder="CPF, e-mail, telefone ou chave aleatória"
-                                    className="w-full bg-emerald-800 text-white p-2 rounded"
+                                    className="input"
                                 />
                             </div>
                             <div className="flex gap-2">
@@ -1090,12 +1064,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
-                        <label htmlFor="manual-employeeId" className="block text-sm mb-1">Funcionário</label>
+                        <label htmlFor="manual-employeeId" className="block font-semibold text-muted mb-2">Funcionário</label>
                         <select
                             id="manual-employeeId"
                             value={manualEmployeeId}
                             onChange={(e) => setManualEmployeeId(e.target.value)}
-                            className="w-full bg-stone-800 text-white p-2 rounded"
+                            className="input"
                         >
                             <option value="">Selecione...</option>
                             {sortedEmployees.map(emp => (
@@ -1104,32 +1078,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </select>
                     </div>
                     <div>
-                        <label htmlFor="manual-date" className="block text-sm mb-1">Data</label>
+                        <label htmlFor="manual-date" className="block font-semibold text-muted mb-2">Data</label>
                         <input
                             id="manual-date"
                             type="date"
                             value={manualDate}
                             onChange={(e) => setManualDate(e.target.value)}
-                            className="w-full bg-stone-800 text-white p-2 rounded"
+                            className="input"
                         />
                     </div>
                     <div>
-                        <label htmlFor="manual-time" className="block text-sm mb-1">Horário</label>
+                        <label htmlFor="manual-time" className="block font-semibold text-muted mb-2">Horário</label>
                         <input
                             id="manual-time"
                             type="time"
                             value={manualTime}
                             onChange={(e) => setManualTime(e.target.value)}
-                            className="w-full bg-stone-800 text-white p-2 rounded"
+                            className="input"
                         />
                     </div>
                     <div>
-                        <label htmlFor="manual-type" className="block text-sm mb-1">Tipo</label>
+                        <label htmlFor="manual-type" className="block font-semibold text-muted mb-2">Tipo</label>
                         <select
                             id="manual-type"
                             value={manualType}
                             onChange={(e) => setManualType(e.target.value as ClockType)}
-                            className="w-full bg-stone-800 text-white p-2 rounded"
+                            className="input"
                         >
                             <option value={ClockType.Entrada}>{ClockType.Entrada}</option>
                             <option value={ClockType.InicioIntervalo}>{ClockType.InicioIntervalo}</option>
@@ -1141,7 +1115,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 <button
                     onClick={handleLaunchManualEvent}
-                    className="w-full bg-cyan-600 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                    className="btn btn-primary w-full"
                 >
                     Lançar Batida
                 </button>
@@ -1153,32 +1127,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label htmlFor="start-date" className="block text-sm mb-1">De:</label>
+                        <label htmlFor="start-date" className="block font-semibold text-muted mb-2">De:</label>
                         <input
                             id="start-date"
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
-                            className="w-full bg-stone-800 text-white p-2 rounded"
+                            className="input"
                         />
                     </div>
                     <div>
-                        <label htmlFor="end-date" className="block text-sm mb-1">Até:</label>
+                        <label htmlFor="end-date" className="block font-semibold text-muted mb-2">Até:</label>
                         <input
                             id="end-date"
                             type="date"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
-                            className="w-full bg-stone-800 text-white p-2 rounded"
+                            className="input"
                         />
                     </div>
                     <div>
-                        <label htmlFor="employee-filter" className="block text-sm mb-1">Funcionário:</label>
+                        <label htmlFor="employee-filter" className="block font-semibold text-muted mb-2">Funcionário:</label>
                         <select
                             id="employee-filter"
                             value={selectedEmployeeId}
                             onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                            className="w-full bg-stone-800 text-white p-2 rounded"
+                            className="input"
                         >
                             <option value="all">Todos os funcionários</option>
                             {sortedEmployees.map(emp => (
@@ -1212,7 +1186,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 <button
                     onClick={handlePrintReport}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                    className="btn btn-outline w-full"
+                    style={{padding: '1rem', color: '#c4b5fd', borderColor: 'rgba(196,181,253,0.3)'}}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -1245,7 +1220,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div className="flex gap-2 justify-center">
                                                 <button
                                                     onClick={() => setEditingEvent(event)}
-                                                    className="bg-blue-600 hover:bg-blue-500 p-1 rounded text-xs"
+                                                    className="btn btn-outline p-2"
+                                                    style={{borderColor: 'rgba(255,255,255,0.1)'}}
                                                     title="Editar evento"
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1262,10 +1238,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             () => onDeleteEvent(event.id)
                                                         );
                                                     }}
-                                                    className="bg-red-600 hover:bg-red-500 p-1 rounded text-xs"
+                                                    className="btn btn-outline p-2"
+                                                    style={{color: 'var(--color-red)', borderColor: 'rgba(220,38,38,0.3)'}}
+                                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(220,38,38,0.1)'}
+                                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                                     title="Deletar evento"
                                                 >
-                                                    <DeleteIcon />
+                                                    <DeleteIcon className="h-4 w-4" />
                                                 </button>
                                             </div>
                                         </td>
@@ -1291,7 +1270,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <div className="flex gap-3 pt-2">
                             <button
                                 onClick={closeConfirmModal}
-                                className="flex-1 bg-stone-800 hover:bg-stone-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+                                className="btn btn-outline flex-1"
                             >
                                 Cancelar
                             </button>
@@ -1300,7 +1279,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     confirmModal.onConfirm();
                                     closeConfirmModal();
                                 }}
-                                className="flex-1 bg-red-600 hover:bg-red-500 text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-red-900/20"
+                                className="btn flex-1"
+                                style={{backgroundColor: 'var(--color-red)'}}
                             >
                                 Confirmar
                             </button>
@@ -1315,10 +1295,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {/* Botão de Sair */}
             <button
                 onClick={onLogout}
-                className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="btn w-full mt-4"
+                style={{backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--color-red)'}}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--color-red-hover)'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
             >
                 <LogoutIcon />
-                Sair
+                Sair do Painel
             </button>
         </div>
     );

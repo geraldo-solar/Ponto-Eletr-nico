@@ -24,10 +24,10 @@ const Clock: React.FC = () => {
 
   return (
     <div className="text-center">
-      <div className="text-5xl font-bold text-amber-400 tracking-wider">
+      <div className="text-gold font-bold tracking-wider" style={{fontSize: '3rem', lineHeight: '1', textShadow: '0 0 15px var(--accent-gold)'}}>
         {formatTime(currentTime)}
       </div>
-      <div className="text-lg text-gray-400 capitalize">
+      <div className="text-lg text-muted" style={{textTransform: 'capitalize', marginTop: '0.5rem'}}>
         {formatDate(currentTime)}
       </div>
     </div>

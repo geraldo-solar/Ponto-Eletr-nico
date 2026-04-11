@@ -71,16 +71,16 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
     }, [events]);
 
     const getButtonClass = (type: ClockType) => {
-        const base = "w-full flex flex-col items-center justify-center p-4 rounded-lg transition-all duration-200 text-white font-semibold space-y-2 aspect-square text-center";
-        if (!enabledActions.includes(type)) {
-            return `${base} bg-emerald-800 text-gray-500 cursor-not-allowed`;
-        }
+        let baseClass = "action-btn";
+        
         switch (type) {
-            case ClockType.Entrada: return `${base} bg-green-600 hover:bg-green-500`;
-            case ClockType.InicioIntervalo: return `${base} bg-yellow-600 hover:bg-yellow-500`;
-            case ClockType.FimIntervalo: return `${base} bg-blue-600 hover:bg-blue-500`;
-            case ClockType.Saida: return `${base} bg-red-600 hover:bg-red-500`;
+            case ClockType.Entrada: baseClass += " bg-entrada"; break;
+            case ClockType.InicioIntervalo: baseClass += " bg-inicio-intervalo"; break;
+            case ClockType.FimIntervalo: baseClass += " bg-fim-intervalo"; break;
+            case ClockType.Saida: baseClass += " bg-saida"; break;
         }
+
+        return baseClass;
     }
 
     const todayEvents = useMemo(() => {
@@ -90,23 +90,24 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
     }, [events]);
 
     return (
-        <div className="bg-stone-800 rounded-xl shadow-2xl p-6 sm:p-8 space-y-6 animate-fade-in w-full max-w-md mx-auto">
-            <div className="text-center">
-                <h2 className="text-3xl font-bold text-amber-400">{employee.name}</h2>
-                <p className="text-gray-400">Bem-vindo(a)!</p>
+        <div className="glass-panel w-full max-w-md mx-auto animate-fade-in flex flex-col space-y-6">
+            <div className="text-center mt-2">
+                <h2 className="text-gold text-2xl font-bold" style={{textTransform: 'uppercase'}}>{employee.name}</h2>
+                <p className="text-muted text-sm mt-1">Bem-vindo(a)!</p>
             </div>
+            
             <Clock />
 
             {isSuccess ? (
                 <div className="flex flex-col items-center justify-center text-center py-8 space-y-4 animate-fade-in">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" style={{width: '64px', height: '64px', color: 'var(--color-emerald)'}} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <h3 className="text-xl font-semibold text-white">{successMessage}</h3>
-                    <p className="text-gray-400">Redirecionando...</p>
+                    <h3 className="text-xl font-semibold">{successMessage}</h3>
+                    <p className="text-muted">Redirecionando...</p>
                 </div>
             ) : (
-                <>
+                <div className="flex flex-col space-y-6">
                     <div className="grid grid-cols-2 gap-4">
                         <button className={getButtonClass(ClockType.Entrada)} disabled={!enabledActions.includes(ClockType.Entrada)} onClick={() => handleClockEvent(ClockType.Entrada)}>
                             <PlayIcon />
@@ -126,27 +127,27 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
                         </button>
                     </div>
 
-                    <div className="space-y-3">
-                        <h3 className="text-xl font-semibold border-b border-gray-600 pb-2">Registros de Hoje</h3>
+                    <div className="flex flex-col space-y-3">
+                        <h3 className="text-lg font-semibold text-muted" style={{borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem'}}>Registros de Hoje</h3>
                         {todayEvents.length > 0 ? (
-                            <ul className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                            <ul className="flex flex-col space-y-2 pr-2" style={{maxHeight: '10rem', overflowY: 'auto'}}>
                                 {todayEvents.map((event, index) => (
-                                    <li key={index} className="flex justify-between items-center bg-emerald-800 p-2 rounded-md text-sm">
-                                        <span className="font-medium text-gray-300">{event.type}</span>
-                                        <span className="font-mono text-amber-400">{formatBrasiliaTime(event.timestamp)}</span>
+                                    <li key={index} className="list-item">
+                                        <span className="font-semibold text-sm" style={{color: '#d1d5db'}}>{event.type}</span>
+                                        <span className="font-mono text-gold text-sm font-bold">{formatBrasiliaTime(event.timestamp)}</span>
                                     </li>
                                 ))}
                             </ul>
                         ) : (
-                            <p className="text-gray-500 text-center py-4">Nenhum registro ainda.</p>
+                            <p className="text-muted text-center py-4 text-sm" style={{fontStyle: 'italic'}}>Nenhum registro ainda.</p>
                         )}
                     </div>
 
-                    <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 bg-emerald-700 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200">
+                    <button onClick={onLogout} className="btn w-full" style={{backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--color-red)'}} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--color-red-hover)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}>
                         <LogoutIcon />
-                        Sair
+                        Sair (Voltar)
                     </button>
-                </>
+                </div>
             )}
         </div>
     );
