@@ -235,7 +235,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         return localStorage.getItem('manualDate') || new Date().toISOString().split('T')[0];
     });
     const [manualTime, setManualTime] = useState<string>(() => {
-        return localStorage.getItem('manualTime') || '09:00';
+        const saved = localStorage.getItem('manualTime') || '09:00:00';
+        return saved.split(':').length === 2 ? saved + ':00' : saved;
     });
     const [manualType, setManualType] = useState<ClockType>(() => {
         const saved = localStorage.getItem('manualType');
@@ -363,7 +364,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         // Criar Date em UTC e ajustar para Brasília (GMT-3)
         const [year, month, day] = manualDate.split('-');
-        const [hours, minutes] = manualTime.split(':');
+        const [hours, minutes, secondsStr] = manualTime.split(':');
+        const seconds = secondsStr ? parseInt(secondsStr) : 0;
 
         // Criar data em UTC com os valores inseridos
         const dateTime = new Date(Date.UTC(
@@ -372,7 +374,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             parseInt(day),
             parseInt(hours),
             parseInt(minutes),
-            0, // segundos
+            seconds, // segundos
             0  // milissegundos
         ));
 
@@ -390,13 +392,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             // Manter funcionário e data, apenas avançar o horário e tipo
             // IMPORTANTE: Fazer TODAS as atualizações de estado ANTES do alert
-            const [hours, minutes] = manualTime.split(':');
+            const [hours, minutes, secondsStr] = manualTime.split(':');
             const newHour = parseInt(hours);
             const newMinutes = parseInt(minutes);
+            const seconds = secondsStr ? parseInt(secondsStr) : 0;
 
             // Avançar 1 hora
             const nextHour = (newHour + 1) % 24;
-            const newTime = `${String(nextHour).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}`;
+            const newTime = `${String(nextHour).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
             // Determinar próximo tipo
             let newType = ClockType.Entrada;
@@ -742,12 +745,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const localMonth = String(eventDate.getUTCMonth() + 1).padStart(2, '0');
         const localDay = String(eventDate.getUTCDate()).padStart(2, '0');
         const [editDate, setEditDate] = useState(`${localYear}-${localMonth}-${localDay}`);
-        const [editTime, setEditTime] = useState(`${String(eventDate.getUTCHours()).padStart(2, '0')}:${String(eventDate.getUTCMinutes()).padStart(2, '0')}`);
+        const [editTime, setEditTime] = useState(`${String(eventDate.getUTCHours()).padStart(2, '0')}:${String(eventDate.getUTCMinutes()).padStart(2, '0')}:${String(eventDate.getUTCSeconds()).padStart(2, '0')}`);
         const [editType, setEditType] = useState(editingEvent.type);
 
         const handleSaveEdit = async () => {
-            const [hours, minutes] = editTime.split(':');
-            const newTimestamp = `${editDate}T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:00.000Z`;
+            const [hours, minutes, secondsStr] = editTime.split(':');
+            const seconds = secondsStr ? secondsStr.padStart(2, '0') : '00';
+            const newTimestamp = `${editDate}T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:${seconds}.000Z`;
 
             try {
                 const response = await fetch(`${API_BASE_URL}/api/events`, {
@@ -805,6 +809,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <label className="block font-semibold text-muted mb-2">Horário</label>
                             <input
                                 type="time"
+                                step="1"
                                 value={editTime}
                                 onChange={(e) => setEditTime(e.target.value)}
                                 className="input"
@@ -1092,6 +1097,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <input
                             id="manual-time"
                             type="time"
+                            step="1"
                             value={manualTime}
                             onChange={(e) => setManualTime(e.target.value)}
                             className="input"
