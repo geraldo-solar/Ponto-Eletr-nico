@@ -1,4 +1,5 @@
 :root {
+  color-scheme: dark;
   /* Colors - Premium Quiet Luxury (Hotel Solar Dark Green) */
   --bg-primary: #0a1f16;
   --bg-secondary: #0f2e21;
@@ -207,6 +208,12 @@ body {
   outline: none;
   border-color: var(--accent-gold);
   background-color: rgba(255,255,255,0.05);
+}
+
+/* Fix for native select dropdown options on Windows */
+select.input option {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 /* Keypad & Clock styles */
