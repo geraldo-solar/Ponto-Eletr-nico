@@ -6,6 +6,7 @@ import type { Employee, StoredClockEvent, AppState } from '../types';
 import { ClockType } from '../types';
 import { PIN_LENGTH } from '../constants';
 import { LogoutIcon, EditIcon, DownloadIcon, DeleteIcon, UploadIcon } from './Icons';
+import { supabase } from '../lib/supabase';
 // Funções para formatar data/hora
 // O banco converte timestamps com offset para UTC, então usamos getUTC* para exibir
 const formatBrasiliaDateTime = (timestamp: string | Date): string => {
@@ -318,20 +319,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                         showMessage('🔄 Restaurando backup... Aguarde.', 'success');
 
-                        // Chamar API para restaurar backup
-                        const response = await fetch('/api/restore-backup', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(backupData)
-                        });
+                        // Restaurar via Supabase
+                        const { error: empError } = await supabase.from('ponto_employees').upsert(backupData.employees);
+                        const { error: evError } = await supabase.from('ponto_events').upsert(backupData.events);
 
-                        if (!response.ok) {
-                            const error = await response.json();
-                            console.error('[handleRestoreBackup] Erro da API:', error);
-                            throw new Error(error.error || 'Erro ao restaurar backup');
+                        if (empError || evError) {
+                            throw new Error('Erro ao salvar no banco de dados');
                         }
 
-                        const result = await response.json();
+                        const result = { employeesCount: backupData.employees.length, eventsCount: backupData.events.length };
 
                         showMessage(
                             `✅ Backup restaurado com sucesso! ${result.employeesCount} funcionários e ${result.eventsCount} batidas importados.`,
@@ -754,26 +750,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const newTimestamp = `${editDate}T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:${seconds}.000Z`;
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/events`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        id: editingEvent.id,
-                        type: editType,
-                        timestamp: newTimestamp
-                    })
-                });
+                const { error } = await supabase.from('ponto_events').update({
+                    type: editType,
+                    timestamp: newTimestamp
+                }).eq('id', editingEvent.id);
 
-                if (response.ok) {
+                if (!error) {
                     alert('Evento atualizado com sucesso!');
                     setEditingEvent(null);
                     onRefresh();
                 } else {
-                    const errorData = await response.json();
-                    console.error('Erro da API:', errorData);
-                    alert(`Erro ao atualizar evento: ${errorData.error || 'Erro desconhecido'}`);
+                    console.error('Erro do Supabase:', error);
+                    alert(`Erro ao atualizar evento: ${error.message || 'Erro desconhecido'}`);
                 }
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Erro ao atualizar evento:', error);
                 alert(`Erro ao atualizar evento: ${error.message}`);
             }

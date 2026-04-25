@@ -4,8 +4,7 @@ import { ADMIN_USER } from './constants';
 import LoginScreen from './components/LoginScreen';
 import ClockScreen from './components/ClockScreen';
 import AdminDashboard from './components/AdminDashboard';
-
-const API_BASE_URL = import.meta.env.PROD ? '' : 'https://ponto-eletr-nico.vercel.app';
+import { supabase } from './lib/supabase';
 
 const App: React.FC = () => {
   const [loggedInEmployee, setLoggedInEmployee] = useState<Employee | null>(null);
@@ -15,32 +14,39 @@ const App: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [allEvents, setAllEvents] = useState<StoredClockEvent[]>([]);
 
-  // Função para buscar funcionários da API
+  // Função para buscar funcionários do Supabase
   const fetchEmployees = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/employees`);
-      if (response.ok) {
-        const data = await response.json();
-        setEmployees(data);
-      }
+      const { data, error } = await supabase
+        .from('ponto_employees')
+        .select('*')
+        .order('id', { ascending: true });
+        
+      if (error) throw error;
+      setEmployees(data || []);
     } catch (error) {
       console.error("Erro ao carregar funcionários:", error);
     }
   }, []);
 
-  // Função para buscar eventos da API com cache-buster
+  // Função para buscar eventos do Supabase
   const fetchEvents = useCallback(async () => {
     try {
-      // Adiciona um timestamp para evitar cache do navegador
-      const response = await fetch(`${API_BASE_URL}/api/events?t=${Date.now()}`);
-      if (response.ok) {
-        const data = await response.json();
-        const eventsWithDates = data.map((event: any) => ({
-          ...event,
-          timestamp: new Date(event.timestamp)
-        }));
-        setAllEvents(eventsWithDates);
-      }
+      const { data, error } = await supabase
+        .from('ponto_events')
+        .select('*')
+        .order('timestamp', { ascending: true });
+        
+      if (error) throw error;
+      
+      const eventsWithDates = (data || []).map((event: any) => ({
+        id: event.id,
+        employeeId: event.employee_id,
+        employeeName: event.employee_name,
+        type: event.type,
+        timestamp: new Date(event.timestamp)
+      }));
+      setAllEvents(eventsWithDates);
     } catch (error) {
       console.error("Erro ao carregar eventos:", error);
     }
@@ -55,48 +61,23 @@ const App: React.FC = () => {
     loadData();
   }, [fetchEmployees, fetchEvents]);
 
-  // Polling para sincronização em tempo real (a cada 5 segundos)
+  // Supabase Real-time para manter os dados atualizados sem o polling de 5 segundos que causava erro de cota
   useEffect(() => {
     if (isLoading) return;
 
-    const pollingInterval = setInterval(async () => {
-      try {
-        const [employeesRes, eventsRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/employees`),
-          fetch(`${API_BASE_URL}/api/events`)
-        ]);
+    const channel = supabase.channel('ponto_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ponto_events' }, () => {
+        fetchEvents();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ponto_employees' }, () => {
+        fetchEmployees();
+      })
+      .subscribe();
 
-        if (employeesRes.ok) {
-          const employeesData = await employeesRes.json();
-          setEmployees(prev => {
-            if (JSON.stringify(prev) === JSON.stringify(employeesData)) return prev;
-            return employeesData;
-          });
-        }
-
-        if (eventsRes.ok) {
-          const eventsData = await eventsRes.json();
-          setAllEvents(prev => {
-            // Comparamos a versão stringificada para detectar mudanças reais
-            // mapeando os eventos atuais para volta ao formato JSON para comparação
-            const currentDataStr = JSON.stringify(prev);
-            const newDataStr = JSON.stringify(eventsData);
-
-            if (currentDataStr === newDataStr) return prev;
-
-            return eventsData.map((event: any) => ({
-              ...event,
-              timestamp: new Date(event.timestamp)
-            }));
-          });
-        }
-      } catch (error) {
-        console.error("Erro no polling:", error);
-      }
-    }, 5000);
-
-    return () => clearInterval(pollingInterval);
-  }, [isLoading]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isLoading, fetchEvents, fetchEmployees]);
 
   const handleLogin = (employee: Employee) => {
     if (employee.id === ADMIN_USER.id) {
@@ -114,7 +95,7 @@ const App: React.FC = () => {
     if (!loggedInEmployee) return;
 
     try {
-      // Usar horário local do dispositivo (código original que funcionava)
+      // Usar horário local do dispositivo (código original que funcionava perfeitamente com a lógica de fuso horário local)
       const now = new Date();
       const year = now.getFullYear();
       const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -124,25 +105,16 @@ const App: React.FC = () => {
       const seconds = String(now.getSeconds()).padStart(2, '0');
       const localTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
 
-      const newEvent = {
-        employeeId: loggedInEmployee.id,
-        employeeName: loggedInEmployee.name,
+      const { error } = await supabase.from('ponto_events').insert([{
+        employee_id: loggedInEmployee.id,
+        employee_name: loggedInEmployee.name,
         type,
         timestamp: localTimestamp,
-      };
+      }]);
 
-      const response = await fetch(`${API_BASE_URL}/api/events`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newEvent),
-      });
-
-      if (response.ok) {
-        await fetchEvents(); // Atualizar lista imediatamente
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao registrar');
-      }
+      if (error) throw error;
+      // Não é mais necessário chamar fetchEvents manualmente pois o Real-time cuidará disso, mas chamamos para ser imediato
+      await fetchEvents();
     } catch (error) {
       console.error("Erro ao adicionar evento:", error);
       throw error;
@@ -174,16 +146,14 @@ const App: React.FC = () => {
   };
 
   const handleAddManualEvent = async (details: { employeeId: number; type: ClockType; timestamp: Date; }): Promise<boolean> => {
-    console.log('[handleAddManualEvent] Iniciando com details:', details);
     const employee = employees.find(e => e.id === details.employeeId);
-    console.log('[handleAddManualEvent] Funcionário encontrado:', employee);
     if (!employee) {
       console.error("Funcionário não encontrado para adicionar evento manual");
       return false;
     }
 
     try {
-      // Converter horário local de Brasília para UTC mantendo os mesmos números (código original)
+      // Converter horário local de Brasília para UTC mantendo os mesmos números
       const localDate = details.timestamp;
       const year = localDate.getFullYear();
       const month = String(localDate.getMonth() + 1).padStart(2, '0');
@@ -193,30 +163,20 @@ const App: React.FC = () => {
       const seconds = String(localDate.getSeconds()).padStart(2, '0');
       const utcTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
 
-      const newEvent = {
-        employeeId: employee.id,
-        employeeName: employee.name,
+      const { error } = await supabase.from('ponto_events').insert([{
+        employee_id: employee.id,
+        employee_name: employee.name,
         type: details.type,
         timestamp: utcTimestamp,
-      };
-      console.log('[handleAddManualEvent] Enviando para API:', newEvent);
+      }]);
 
-      const response = await fetch(`${API_BASE_URL}/api/events`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newEvent),
-      });
-
-      if (response.ok) {
-        console.log('[handleAddManualEvent] Sucesso! Status:', response.status);
-        // Atrasar fetchEvents para permitir que as atualizações de estado do formulário sejam processadas primeiro
-        setTimeout(() => fetchEvents(), 500);
-        return true;
-      } else {
-        const error = await response.json();
-        console.error('[handleAddManualEvent] Erro da API:', response.status, error);
+      if (error) {
+        console.error('[handleAddManualEvent] Erro da API:', error);
         return false;
       }
+      
+      setTimeout(() => fetchEvents(), 500);
+      return true;
     } catch (error) {
       console.error("Erro ao adicionar evento manual:", error);
       return false;
@@ -225,18 +185,12 @@ const App: React.FC = () => {
 
   const handleDeleteEvent = async (eventId: number) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/events?id=${eventId}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        // Aguarda um pequeno delay e recarrega os eventos
-        await fetchEvents();
-        // Não precisa de alert de sucesso para não interromper o fluxo, 
-        // mas o refresh agora é garantido
+      const { error } = await supabase.from('ponto_events').delete().eq('id', eventId);
+      
+      if (error) {
+        alert(`Erro ao deletar: ${error.message || 'Erro desconhecido'}`);
       } else {
-        const error = await response.json();
-        alert(`Erro ao deletar: ${error.error || 'Erro desconhecido'}`);
+        await fetchEvents();
       }
     } catch (error) {
       console.error("Erro ao deletar evento:", error);
@@ -246,14 +200,19 @@ const App: React.FC = () => {
 
   const handleAddEmployee = async (newEmployee: Omit<Employee, 'id'>) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/employees`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newEmployee),
-      });
+      const { error } = await supabase.from('ponto_employees').insert([{
+        name: newEmployee.name,
+        pin: newEmployee.pin,
+        phone: newEmployee.phone,
+        cpf: newEmployee.cpf || null,
+        funcao: newEmployee.funcao || null,
+        pix: newEmployee.pix || null
+      }]);
 
-      if (response.ok) {
+      if (!error) {
         await fetchEmployees();
+      } else {
+        console.error("Erro ao adicionar funcionário:", error);
       }
     } catch (error) {
       console.error("Erro ao adicionar funcionário:", error);
@@ -262,21 +221,13 @@ const App: React.FC = () => {
 
   const handleDeleteEmployee = async (employeeId: number) => {
     try {
-      // Deletar funcionário
-      const empResponse = await fetch(`${API_BASE_URL}/api/employees?id=${employeeId}`, {
-        method: 'DELETE',
-      });
+      // Deletar funcionário (eventos são deletados via CASCADE no banco de dados)
+      const { error } = await supabase.from('ponto_employees').delete().eq('id', employeeId);
 
-      // Deletar eventos do funcionário
-      const eventsToDelete = allEvents.filter(e => e.employeeId === employeeId);
-      await Promise.all(
-        eventsToDelete.map(event =>
-          fetch(`${API_BASE_URL}/api/events?id=${event.id}`, { method: 'DELETE' })
-        )
-      );
-
-      if (empResponse.ok) {
+      if (!error) {
         await Promise.all([fetchEmployees(), fetchEvents()]);
+      } else {
+        console.error("Erro ao deletar funcionário:", error);
       }
     } catch (error) {
       console.error("Erro ao deletar funcionário:", error);
@@ -285,14 +236,19 @@ const App: React.FC = () => {
 
   const handleUpdateEmployee = async (updatedEmployee: Employee) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/employees`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedEmployee),
-      });
+      const { error } = await supabase.from('ponto_employees').update({
+        name: updatedEmployee.name,
+        pin: updatedEmployee.pin,
+        phone: updatedEmployee.phone,
+        cpf: updatedEmployee.cpf || null,
+        funcao: updatedEmployee.funcao || null,
+        pix: updatedEmployee.pix || null
+      }).eq('id', updatedEmployee.id);
 
-      if (response.ok) {
+      if (!error) {
         await fetchEmployees();
+      } else {
+        console.error("Erro ao atualizar funcionário:", error);
       }
     } catch (error) {
       console.error("Erro ao atualizar funcionário:", error);
@@ -352,14 +308,12 @@ const App: React.FC = () => {
       const seconds = String(newTimestamp.getSeconds()).padStart(2, '0');
       const localTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
 
-      const response = await fetch(`${API_BASE_URL}/api/events`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: eventId, timestamp: localTimestamp }),
-      });
+      const { error } = await supabase.from('ponto_events').update({ timestamp: localTimestamp }).eq('id', eventId);
 
-      if (response.ok) {
+      if (!error) {
         await fetchEvents();
+      } else {
+        console.error("Erro ao atualizar evento:", error);
       }
     } catch (error) {
       console.error("Erro ao atualizar evento:", error);
