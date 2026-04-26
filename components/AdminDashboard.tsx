@@ -452,21 +452,29 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         let totalExtra = 0;
         let totalPayment = 0;
 
-        // Para cada funcionário, agrupar por turnos e calcular
+        // Para cada funcionário, agrupar por data e depois por turnos (idêntico à impressão)
         Object.values(employeeGroups).forEach(empEvents => {
-            // Agrupar eventos deste funcionário por turnos
-            const shifts = groupEventsByShifts(empEvents);
+            // Agrupar eventos por data
+            const eventsByDate: Record<string, StoredClockEvent[]> = {};
+            empEvents.forEach(event => {
+                const eventDate = new Date(event.timestamp);
+                const dateKey = `${String(eventDate.getUTCFullYear())}-${String(eventDate.getUTCMonth() + 1).padStart(2, '0')}-${String(eventDate.getUTCDate()).padStart(2, '0')}`;
+                if (!eventsByDate[dateKey]) eventsByDate[dateKey] = [];
+                eventsByDate[dateKey].push(event);
+            });
 
-            // Calcular total para cada turno deste funcionário
-            shifts.forEach(shiftEvents => {
-                console.log('[DEBUG] shiftEvents:', shiftEvents);
-                const details = calculateWorkDetails(shiftEvents);
-                console.log('[DEBUG] details:', details);
-                if (details.status === 'complete') {
-                    totalNormal += details.normal;
-                    totalExtra += details.extra;
-                    totalPayment += details.payment.total;
-                }
+            // Processar cada dia separadamente
+            Object.values(eventsByDate).forEach(dayEvents => {
+                const shifts = groupEventsByShifts(dayEvents);
+                
+                shifts.forEach(shiftEvents => {
+                    const details = calculateWorkDetails(shiftEvents);
+                    if (details.status === 'complete') {
+                        totalNormal += details.normal;
+                        totalExtra += details.extra;
+                        totalPayment += details.payment.total;
+                    }
+                });
             });
         });
 
