@@ -88,19 +88,34 @@ const groupEventsByShifts = (events: StoredClockEvent[]): StoredClockEvent[][] =
     let shiftStarted = false;
 
     for (const event of sorted) {
-        if (event.type === ClockType.Entrada && !shiftStarted) {
+        if (event.type === ClockType.Entrada) {
+            // Se já tínhamos um turno aberto, fechamos ele como incompleto
+            if (shiftStarted && currentShift.length > 0) {
+                shifts.push(currentShift);
+            }
             // Início de um novo turno
             currentShift = [event];
             shiftStarted = true;
         } else if (shiftStarted) {
-            // Adicionar evento ao turno atual
-            currentShift.push(event);
-
-            if (event.type === ClockType.Saida) {
-                // Fim do turno
+            // Verifica se o evento não está muito distante da Entrada (ex: > 20 horas)
+            const entradaTime = new Date(currentShift[0].timestamp).getTime();
+            const eventTime = new Date(event.timestamp).getTime();
+            
+            if (eventTime - entradaTime > 20 * 60 * 60 * 1000) {
+                // Muito distante. Fecha o turno atual incompleto e ignora este evento órfão.
                 shifts.push(currentShift);
                 currentShift = [];
                 shiftStarted = false;
+            } else {
+                // Adicionar evento ao turno atual
+                currentShift.push(event);
+
+                if (event.type === ClockType.Saida) {
+                    // Fim do turno
+                    shifts.push(currentShift);
+                    currentShift = [];
+                    shiftStarted = false;
+                }
             }
         }
     }
@@ -452,29 +467,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         let totalExtra = 0;
         let totalPayment = 0;
 
-        // Para cada funcionário, agrupar por data e depois por turnos (idêntico à impressão)
+        // Para cada funcionário, agrupar por turnos seguros e calcular
         Object.values(employeeGroups).forEach(empEvents => {
-            // Agrupar eventos por data
-            const eventsByDate: Record<string, StoredClockEvent[]> = {};
-            empEvents.forEach(event => {
-                const eventDate = new Date(event.timestamp);
-                const dateKey = `${String(eventDate.getUTCFullYear())}-${String(eventDate.getUTCMonth() + 1).padStart(2, '0')}-${String(eventDate.getUTCDate()).padStart(2, '0')}`;
-                if (!eventsByDate[dateKey]) eventsByDate[dateKey] = [];
-                eventsByDate[dateKey].push(event);
-            });
+            // Agrupar eventos deste funcionário por turnos
+            const shifts = groupEventsByShifts(empEvents);
 
-            // Processar cada dia separadamente
-            Object.values(eventsByDate).forEach(dayEvents => {
-                const shifts = groupEventsByShifts(dayEvents);
-                
-                shifts.forEach(shiftEvents => {
-                    const details = calculateWorkDetails(shiftEvents);
-                    if (details.status === 'complete') {
-                        totalNormal += details.normal;
-                        totalExtra += details.extra;
-                        totalPayment += details.payment.total;
-                    }
-                });
+            // Calcular total para cada turno deste funcionário
+            shifts.forEach(shiftEvents => {
+                const details = calculateWorkDetails(shiftEvents);
+                if (details.status === 'complete') {
+                    totalNormal += details.normal;
+                    totalExtra += details.extra;
+                    totalPayment += details.payment.total;
+                }
             });
         });
 
@@ -543,37 +548,43 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const funcao = employee?.funcao || '';
             const employeeName = empEvents[0].employeeName;
 
-            // Agrupar eventos por data
-            const eventsByDate: Record<string, StoredClockEvent[]> = {};
-            empEvents.forEach(event => {
-                const eventDate = new Date(event.timestamp);
+            // Agrupar eventos por turno de forma segura e anexar ao dia da Entrada
+            const shifts = groupEventsByShifts(empEvents);
+            const shiftsByDate: Record<string, StoredClockEvent[][]> = {};
+            
+            shifts.forEach(shiftEvents => {
+                if (shiftEvents.length === 0) return;
+                // O dia do turno é definido pela primeira batida (Entrada)
+                const eventDate = new Date(shiftEvents[0].timestamp);
                 const dateKey = `${String(eventDate.getUTCFullYear())}-${String(eventDate.getUTCMonth() + 1).padStart(2, '0')}-${String(eventDate.getUTCDate()).padStart(2, '0')}`;
-                if (!eventsByDate[dateKey]) eventsByDate[dateKey] = [];
-                eventsByDate[dateKey].push(event);
+                
+                if (!shiftsByDate[dateKey]) shiftsByDate[dateKey] = [];
+                shiftsByDate[dateKey].push(shiftEvents);
             });
 
-            const sortedDates = Object.keys(eventsByDate).sort();
+            const sortedDates = Object.keys(shiftsByDate).sort();
             let employeeTotalNormalMs = 0;
             let employeeTotalExtraMs = 0;
             let employeeTotalPayment = 0;
 
             const tableRows = sortedDates.map(dateKey => {
-                const dayEvents = eventsByDate[dateKey];
-                const shifts = groupEventsByShifts(dayEvents);
+                const dayShifts = shiftsByDate[dateKey];
                 let dayNormalMs = 0;
                 let dayExtraMs = 0;
                 let dayPayment = 0;
 
                 let entrada = '', inicioIntervalo = '', fimIntervalo = '', saida = '';
-                dayEvents.forEach(event => {
-                    const time = formatBrasiliaTime(event.timestamp);
-                    if (event.type === 'Entrada') entrada = time;
-                    if (event.type === 'Início Intervalo') inicioIntervalo = time;
-                    if (event.type === 'Fim Intervalo') fimIntervalo = time;
-                    if (event.type === 'Saída') saida = time;
-                });
+                
+                // Extrair horários dos turnos deste dia
+                dayShifts.forEach(shiftEvents => {
+                    shiftEvents.forEach(event => {
+                        const time = formatBrasiliaTime(event.timestamp);
+                        if (event.type === 'Entrada') entrada = time;
+                        if (event.type === 'Início Intervalo') inicioIntervalo = time;
+                        if (event.type === 'Fim Intervalo') fimIntervalo = time;
+                        if (event.type === 'Saída') saida = time;
+                    });
 
-                shifts.forEach(shiftEvents => {
                     const details = calculateWorkDetails(shiftEvents);
                     if (details.status === 'complete') {
                         dayNormalMs += details.normal;
