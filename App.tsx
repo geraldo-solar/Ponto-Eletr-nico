@@ -29,17 +29,36 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Função para buscar eventos do Supabase
+  // Função para buscar eventos do Supabase (com paginação para buscar mais de 1000 registros)
   const fetchEvents = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('ponto_events')
-        .select('*')
-        .order('timestamp', { ascending: true });
+      let allFetchedData: any[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('ponto_events')
+          .select('*')
+          .order('timestamp', { ascending: true })
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+          
+        if (error) throw error;
         
-      if (error) throw error;
+        if (data && data.length > 0) {
+          allFetchedData = [...allFetchedData, ...data];
+          if (data.length < pageSize) {
+            hasMore = false;
+          } else {
+            page++;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
       
-      const eventsWithDates = (data || []).map((event: any) => ({
+      const eventsWithDates = allFetchedData.map((event: any) => ({
         id: event.id,
         employeeId: event.employee_id,
         employeeName: event.employee_name,
