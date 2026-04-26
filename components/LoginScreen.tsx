@@ -146,11 +146,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, employees, events })
   };
 
   return (
-    <div className="glass-panel max-w-md mx-auto animate-fade-in flex flex-col space-y-6">
+    <div className="glass-panel max-w-md mx-auto animate-fade-in flex flex-col space-y-4">
       <Clock />
-      <div className="flex flex-col space-y-4">
+      <div className="flex flex-col space-y-2">
         <div className="text-center text-lg text-muted">Digite seu PIN para continuar</div>
-        <div className="flex justify-center items-center space-x-3" style={{height: '4rem'}}>
+        <div className="flex justify-center items-center space-x-3 py-2">
           {Array.from({ length: PIN_LENGTH }).map((_, index) => (
             <div
               key={index}
@@ -158,8 +158,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, employees, events })
             ></div>
           ))}
         </div>
-        {error && <div className="text-center font-semibold" style={{color: 'var(--color-red)', minHeight: '1.5rem', padding: '0.5rem 1rem'}}>{error}</div>}
-        {!error && <div style={{height: '1.5rem'}}></div>}
+        <div className="text-center font-semibold flex items-center justify-center" style={{color: 'var(--color-red)', minHeight: '2rem'}}>
+          {error}
+        </div>
       </div>
       <Keypad onKeyPress={handleKeyPress} onBackspace={handleBackspace} onClear={handleClear} />
     </div>
