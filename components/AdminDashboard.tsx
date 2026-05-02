@@ -1304,9 +1304,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
             )}
 
-            <AddBreakModal />
-            <EditEventModal />
-
             {/* Botão de Sair */}
             <button
                 onClick={onLogout}

@@ -25,12 +25,14 @@ interface ClockScreenProps {
 const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, onAddEvent }) => {
     const [isSuccess, setIsSuccess] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
+    const [processingType, setProcessingType] = useState<ClockType | null>(null);
 
     const lastEvent = events.length > 0 ? events[events.length - 1] : null;
 
     const handleClockEvent = async (type: ClockType) => {
-        if (isSuccess) return;
+        if (isSuccess || processingType) return;
 
+        setProcessingType(type);
         try {
             await onAddEvent(type);
             setSuccessMessage(`Registro de "${type}" realizado com sucesso!`);
@@ -42,6 +44,7 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
             console.error("Erro ao registrar ponto:", error);
             // Se o erro vier da API como string ou objeto com mensagem
             alert(error.message || "Erro ao registrar o ponto. Tente novamente.");
+            setProcessingType(null);
         }
     };
 
@@ -109,21 +112,57 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
             ) : (
                 <div className="flex flex-col space-y-6">
                     <div className="grid grid-cols-2 gap-4">
-                        <button className={getButtonClass(ClockType.Entrada)} disabled={!enabledActions.includes(ClockType.Entrada)} onClick={() => handleClockEvent(ClockType.Entrada)}>
-                            <PlayIcon />
-                            <span>{ClockType.Entrada}</span>
+                        <button className={getButtonClass(ClockType.Entrada)} disabled={!enabledActions.includes(ClockType.Entrada) || !!processingType} onClick={() => handleClockEvent(ClockType.Entrada)}>
+                            {processingType === ClockType.Entrada ? (
+                                <>
+                                    <svg className="animate-spin h-5 w-5 mr-2 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    <span>Aguarde...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <PlayIcon />
+                                    <span>{ClockType.Entrada}</span>
+                                </>
+                            )}
                         </button>
-                        <button className={getButtonClass(ClockType.InicioIntervalo)} disabled={!enabledActions.includes(ClockType.InicioIntervalo)} onClick={() => handleClockEvent(ClockType.InicioIntervalo)}>
-                            <CoffeeIcon />
-                            <span>{ClockType.InicioIntervalo}</span>
+                        <button className={getButtonClass(ClockType.InicioIntervalo)} disabled={!enabledActions.includes(ClockType.InicioIntervalo) || !!processingType} onClick={() => handleClockEvent(ClockType.InicioIntervalo)}>
+                            {processingType === ClockType.InicioIntervalo ? (
+                                <>
+                                    <svg className="animate-spin h-5 w-5 mr-2 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    <span>Aguarde...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <CoffeeIcon />
+                                    <span>{ClockType.InicioIntervalo}</span>
+                                </>
+                            )}
                         </button>
-                        <button className={getButtonClass(ClockType.FimIntervalo)} disabled={!enabledActions.includes(ClockType.FimIntervalo)} onClick={() => handleClockEvent(ClockType.FimIntervalo)}>
-                            <ClockInIcon />
-                            <span>{ClockType.FimIntervalo}</span>
+                        <button className={getButtonClass(ClockType.FimIntervalo)} disabled={!enabledActions.includes(ClockType.FimIntervalo) || !!processingType} onClick={() => handleClockEvent(ClockType.FimIntervalo)}>
+                            {processingType === ClockType.FimIntervalo ? (
+                                <>
+                                    <svg className="animate-spin h-5 w-5 mr-2 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    <span>Aguarde...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <ClockInIcon />
+                                    <span>{ClockType.FimIntervalo}</span>
+                                </>
+                            )}
                         </button>
-                        <button className={getButtonClass(ClockType.Saida)} disabled={!enabledActions.includes(ClockType.Saida)} onClick={() => handleClockEvent(ClockType.Saida)}>
-                            <StopIcon />
-                            <span className="notranslate" translate="no">{ClockType.Saida}</span>
+                        <button className={getButtonClass(ClockType.Saida)} disabled={!enabledActions.includes(ClockType.Saida) || !!processingType} onClick={() => handleClockEvent(ClockType.Saida)}>
+                            {processingType === ClockType.Saida ? (
+                                <>
+                                    <svg className="animate-spin h-5 w-5 mr-2 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    <span>Aguarde...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <StopIcon />
+                                    <span className="notranslate" translate="no">{ClockType.Saida}</span>
+                                </>
+                            )}
                         </button>
                     </div>
 
