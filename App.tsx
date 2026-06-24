@@ -217,9 +217,33 @@ const App: React.FC = () => {
     }
   };
 
+  const handleAddEmployeeWithId = async (newEmployee: Employee) => {
+    const { error } = await supabase.from('ponto_employees').insert([{
+      id: newEmployee.id,
+      name: newEmployee.name,
+      pin: newEmployee.pin,
+      phone: newEmployee.phone,
+      cpf: newEmployee.cpf || null,
+      funcao: newEmployee.funcao || null,
+      pix: newEmployee.pix || null
+    }]);
+    if (error) throw error;
+  };
+
   const handleAddEmployee = async (newEmployee: Omit<Employee, 'id'>) => {
     try {
+      const { data: maxIdData, error: maxIdError } = await supabase
+        .from('ponto_employees')
+        .select('id')
+        .order('id', { ascending: false })
+        .limit(1);
+
+      if (maxIdError) throw maxIdError;
+
+      const nextId = (maxIdData && maxIdData.length > 0) ? (maxIdData[0].id + 1) : 1;
+
       const { error } = await supabase.from('ponto_employees').insert([{
+        id: nextId,
         name: newEmployee.name,
         pin: newEmployee.pin,
         phone: newEmployee.phone,
@@ -232,9 +256,11 @@ const App: React.FC = () => {
         await fetchEmployees();
       } else {
         console.error("Erro ao adicionar funcionário:", error);
+        alert(`Erro ao adicionar funcionário: ${error.message}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao adicionar funcionário:", error);
+      alert(`Erro ao adicionar funcionário: ${error.message || error}`);
     }
   };
 
@@ -247,9 +273,11 @@ const App: React.FC = () => {
         await Promise.all([fetchEmployees(), fetchEvents()]);
       } else {
         console.error("Erro ao deletar funcionário:", error);
+        alert(`Erro ao deletar funcionário: ${error.message}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao deletar funcionário:", error);
+      alert(`Erro ao deletar funcionário: ${error.message || error}`);
     }
   };
 
@@ -294,6 +322,15 @@ const App: React.FC = () => {
     let updatedCount = 0;
 
     try {
+      const { data: maxIdData, error: maxIdError } = await supabase
+        .from('ponto_employees')
+        .select('id')
+        .order('id', { ascending: false })
+        .limit(1);
+
+      if (maxIdError) throw maxIdError;
+      let currentMaxId = (maxIdData && maxIdData.length > 0) ? maxIdData[0].id : 0;
+
       for (const importedEmp of employeesToImport) {
         const existingEmployee = employees.find(e => e.pin === importedEmp.pin);
 
@@ -303,15 +340,16 @@ const App: React.FC = () => {
           updatedCount++;
         } else {
           // Adicionar
-          await handleAddEmployee(importedEmp);
+          currentMaxId++;
+          await handleAddEmployeeWithId({ ...importedEmp, id: currentMaxId });
           addedCount++;
         }
       }
 
       await fetchEmployees();
       return { added: addedCount, updated: updatedCount, errors };
-    } catch (error) {
-      errors.push("Falha ao importar funcionários.");
+    } catch (error: any) {
+      errors.push(`Falha ao importar funcionários: ${error.message || error}`);
       return { added: 0, updated: 0, errors };
     }
   };
