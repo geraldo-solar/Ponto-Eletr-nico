@@ -44,7 +44,7 @@ interface AdminDashboardProps {
     allEvents: StoredClockEvent[];
     employees: Employee[];
     onAddEmployee: (employee: Omit<Employee, 'id'>) => void;
-    onDeleteEmployee: (id: number) => void;
+    onToggleActiveEmployee: (id: number, active: boolean) => void;
     onUpdateEmployee: (employee: Employee) => void;
     onImportEmployees: (employees: Omit<Employee, 'id'>[]) => Promise<{ added: number, updated: number, errors: string[] }>;
     onLogout: () => void;
@@ -204,7 +204,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     allEvents,
     employees,
     onAddEmployee,
-    onDeleteEmployee,
+    onToggleActiveEmployee,
     onUpdateEmployee,
     onImportEmployees,
     onLogout,
@@ -279,6 +279,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     // Ordenar funcionários por nome para as listas
     const sortedEmployees = useMemo(() => {
         return [...employees].sort((a, b) => a.name.localeCompare(b.name));
+    }, [employees]);
+
+    const sortedActiveEmployees = useMemo(() => {
+        const active = employees.filter(emp => emp.active !== false);
+        return [...active].sort((a, b) => a.name.localeCompare(b.name));
+    }, [employees]);
+
+    const sortedInactiveEmployees = useMemo(() => {
+        const inactive = employees.filter(emp => emp.active === false);
+        return [...inactive].sort((a, b) => a.name.localeCompare(b.name));
     }, [employees]);
 
     const handleAddEmployee = () => {
@@ -951,8 +961,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 <div className="pt-4 border-t border-gray-600">
                     <h4 className="text-lg font-semibold mb-2">Funcionários Ativos</h4>
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {sortedEmployees.map(emp => (
+                    <div className="space-y-2 max-h-60 overflow-y-auto mb-6">
+                        {sortedActiveEmployees.map(emp => (
                             <div key={emp.id} className="flex justify-between items-center bg-stone-800 p-3 rounded">
                                 <div>
                                     <p className="font-semibold">{emp.name}</p>
@@ -972,23 +982,60 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <button
                                         onClick={() => {
                                             openConfirmModal(
-                                                'Excluir Funcionário',
-                                                `Deseja realmente excluir o funcionário ${emp.name}? Todos os seus registros também serão apagados.`,
-                                                () => onDeleteEmployee(emp.id)
+                                                'Desativar Funcionário',
+                                                `Deseja realmente desativar o funcionário ${emp.name}? Ele não poderá mais bater ponto, mas todo o histórico será mantido.`,
+                                                () => onToggleActiveEmployee(emp.id, false)
                                             );
                                         }}
                                         className="btn btn-outline text-sm py-1 px-3"
-                                        title="Excluir funcionário"
+                                        title="Desativar funcionário"
                                         style={{color: 'var(--color-red)', borderColor: 'rgba(220,38,38,0.3)'}}
                                         onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(220,38,38,0.1)'}
                                         onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                     >
-                                        <DeleteIcon /> Excluir
+                                        Desativar
                                     </button>
                                 </div>
                             </div>
                         ))}
                     </div>
+                </div>
+
+                <div className="pt-4 border-t border-gray-600">
+                    <h4 className="text-lg font-semibold mb-2">Funcionários Inativos</h4>
+                    {sortedInactiveEmployees.length === 0 ? (
+                        <p className="text-sm text-gray-400 py-2 text-center">Nenhum funcionário inativo.</p>
+                    ) : (
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {sortedInactiveEmployees.map(emp => (
+                                <div key={emp.id} className="flex justify-between items-center bg-stone-800/40 p-3 rounded">
+                                    <div>
+                                        <p className="font-semibold text-gray-400">{emp.name}</p>
+                                        <p className="text-sm text-gray-500">PIN: {emp.pin}</p>
+                                        {emp.funcao && <p className="text-sm text-gray-500">Função: {emp.funcao}</p>}
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row gap-2 mt-2 sm:mt-0">
+                                        <button
+                                            onClick={() => {
+                                                openConfirmModal(
+                                                    'Reativar Funcionário',
+                                                    `Deseja realmente reativar o funcionário ${emp.name}? Ele poderá voltar a bater ponto imediatamente.`,
+                                                    () => onToggleActiveEmployee(emp.id, true)
+                                                );
+                                            }}
+                                            className="btn btn-outline text-sm py-1 px-3"
+                                            title="Reativar funcionário"
+                                            style={{color: 'var(--color-emerald)', borderColor: 'rgba(5,150,105,0.3)'}}
+                                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(5,150,105,0.1)'}
+                                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                            Reativar
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {editingEmployee && (

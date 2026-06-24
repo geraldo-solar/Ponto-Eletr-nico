@@ -6,6 +6,7 @@ export interface Employee {
   cpf?: string;
   funcao?: string;
   pix?: string;
+  active?: boolean;
 }
 
 export enum ClockType {

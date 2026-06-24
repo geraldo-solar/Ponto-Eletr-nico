@@ -264,20 +264,22 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeleteEmployee = async (employeeId: number) => {
+  const handleToggleEmployeeActive = async (employeeId: number, active: boolean) => {
     try {
-      // Deletar funcionário (eventos são deletados via CASCADE no banco de dados)
-      const { error } = await supabase.from('ponto_employees').delete().eq('id', employeeId);
+      const { error } = await supabase
+        .from('ponto_employees')
+        .update({ active })
+        .eq('id', employeeId);
 
       if (!error) {
-        await Promise.all([fetchEmployees(), fetchEvents()]);
+        await fetchEmployees();
       } else {
-        console.error("Erro ao deletar funcionário:", error);
-        alert(`Erro ao deletar funcionário: ${error.message}`);
+        console.error(`Erro ao ${active ? 'reativar' : 'desativar'} funcionário:`, error);
+        alert(`Erro ao ${active ? 'reativar' : 'desativar'} funcionário: ${error.message}`);
       }
     } catch (error: any) {
-      console.error("Erro ao deletar funcionário:", error);
-      alert(`Erro ao deletar funcionário: ${error.message || error}`);
+      console.error(`Erro ao ${active ? 'reativar' : 'desativar'} funcionário:`, error);
+      alert(`Erro ao ${active ? 'reativar' : 'desativar'} funcionário: ${error.message || error}`);
     }
   };
 
@@ -382,7 +384,9 @@ const App: React.FC = () => {
     [allEvents, loggedInEmployee]
   );
 
-  const employeesWithAdmin = useMemo(() => [...employees, ADMIN_USER], [employees]);
+  const activeEmployees = useMemo(() => employees.filter(emp => emp.active !== false), [employees]);
+
+  const employeesWithAdmin = useMemo(() => [...activeEmployees, ADMIN_USER], [activeEmployees]);
 
   return (
     <div className="app-container">
@@ -409,7 +413,7 @@ const App: React.FC = () => {
             allEvents={allEvents}
             employees={employees}
             onAddEmployee={handleAddEmployee}
-            onDeleteEmployee={handleDeleteEmployee}
+            onToggleActiveEmployee={handleToggleEmployeeActive}
             onUpdateEmployee={handleUpdateEmployee}
             onImportEmployees={handleImportEmployees}
             onUpdateEvent={handleUpdateEvent}
