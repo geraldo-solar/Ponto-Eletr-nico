@@ -249,7 +249,11 @@ const App: React.FC = () => {
         phone: newEmployee.phone,
         cpf: newEmployee.cpf || null,
         funcao: newEmployee.funcao || null,
-        pix: newEmployee.pix || null
+        pix: newEmployee.pix || null,
+        intervalo_preassinalado: !!newEmployee.intervalo_preassinalado,
+        intervalo_inicio: newEmployee.intervalo_inicio || null,
+        intervalo_fim: newEmployee.intervalo_fim || null,
+        intervalo_vigencia: newEmployee.intervalo_vigencia || null
       }]);
 
       if (!error) {
@@ -291,7 +295,11 @@ const App: React.FC = () => {
         phone: updatedEmployee.phone,
         cpf: updatedEmployee.cpf || null,
         funcao: updatedEmployee.funcao || null,
-        pix: updatedEmployee.pix || null
+        pix: updatedEmployee.pix || null,
+        intervalo_preassinalado: !!updatedEmployee.intervalo_preassinalado,
+        intervalo_inicio: updatedEmployee.intervalo_inicio || null,
+        intervalo_fim: updatedEmployee.intervalo_fim || null,
+        intervalo_vigencia: updatedEmployee.intervalo_vigencia || null
       }).eq('id', updatedEmployee.id);
 
       if (!error) {

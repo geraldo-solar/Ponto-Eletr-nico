@@ -29,13 +29,13 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
 
     const lastEvent = events.length > 0 ? events[events.length - 1] : null;
 
-    const handleClockEvent = async (type: ClockType) => {
+    const handleClockEvent = async (type: ClockType, mensagem?: string) => {
         if (isSuccess || processingType) return;
 
         setProcessingType(type);
         try {
             await onAddEvent(type);
-            setSuccessMessage(`Registro de "${type}" realizado com sucesso!`);
+            setSuccessMessage(mensagem || `Registro de "${type}" realizado com sucesso!`);
             setIsSuccess(true);
             setTimeout(() => {
                 onLogout();
@@ -57,7 +57,11 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
 
         if (todayEvents.length === 0) return [ClockType.Entrada];
 
-        const lastTodayEvent = todayEvents[todayEvents.length - 1];
+        // O registro de "não usufruí" não altera a sequência de batidas do dia.
+        const batidas = todayEvents.filter(e => e.type !== ClockType.IntervaloNaoUsufruido);
+        if (batidas.length === 0) return [ClockType.Entrada];
+
+        const lastTodayEvent = batidas[batidas.length - 1];
 
         switch (lastTodayEvent.type) {
             case ClockType.Entrada:
@@ -91,6 +95,28 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
             .filter(e => new Date(e.timestamp).toDateString() === new Date().toDateString())
             .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()); // Ordem crescente (mais antigo primeiro)
     }, [events]);
+
+    // Só faz sentido avisar sobre o intervalo para quem tem intervalo pré-assinalado,
+    // depois de ter batido a entrada e enquanto não registrou o aviso no dia.
+    const podeAvisarIntervalo = useMemo(() => {
+        if (!employee.intervalo_preassinalado) return false;
+        const bateuEntrada = todayEvents.some(e => e.type === ClockType.Entrada);
+        const jaAvisou = todayEvents.some(e => e.type === ClockType.IntervaloNaoUsufruido);
+        return bateuEntrada && !jaAvisou;
+    }, [employee.intervalo_preassinalado, todayEvents]);
+
+    const avisarIntervaloNaoUsufruido = () => {
+        const ok = window.confirm(
+            'Você está registrando que hoje não conseguiu tirar o seu intervalo de descanso.\n\n' +
+            'O dia será enviado ao setor de pessoal e o tempo será pago com acréscimo de 50%.\n\n' +
+            'Confirma?'
+        );
+        if (!ok) return;
+        handleClockEvent(
+            ClockType.IntervaloNaoUsufruido,
+            'Registrado! O setor de pessoal foi avisado e o período será pago.'
+        );
+    };
 
     return (
         <div className="glass-panel w-full max-w-md mx-auto animate-fade-in flex flex-col space-y-6 relative">
@@ -139,6 +165,18 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
                             <span className="notranslate" translate="no">{ClockType.Saida}</span>
                         </button>
                     </div>
+
+                    {podeAvisarIntervalo && (
+                        <button
+                            onClick={avisarIntervaloNaoUsufruido}
+                            disabled={!!processingType}
+                            className="btn w-full"
+                            style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-gold)', color: 'var(--color-gold)', flexDirection: 'column', padding: '0.75rem' }}
+                        >
+                            <span className="font-semibold">Hoje não consegui tirar meu intervalo</span>
+                            <span className="text-xs" style={{ opacity: 0.8 }}>O período será pago com acréscimo de 50%</span>
+                        </button>
+                    )}
 
                     <div className="flex flex-col space-y-3">
                         <h3 className="text-lg font-semibold text-muted" style={{borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem'}}>Registros de Hoje</h3>
