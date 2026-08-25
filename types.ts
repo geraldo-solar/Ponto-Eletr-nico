@@ -7,6 +7,11 @@ export interface Employee {
   funcao?: string;
   pix?: string;
   active?: boolean;
+  /** Intervalo pré-assinalado (art. 74, §2º, da CLT). Nomes iguais aos das colunas do banco. */
+  intervalo_preassinalado?: boolean;
+  intervalo_inicio?: string | null;
+  intervalo_fim?: string | null;
+  intervalo_vigencia?: string | null;
 }
 
 export enum ClockType {
@@ -14,6 +19,8 @@ export enum ClockType {
   InicioIntervalo = "Início Intervalo",
   FimIntervalo = "Fim Intervalo",
   Saida = "Saída",
+  /** Registrado pelo próprio colaborador quando não conseguiu usufruir o intervalo. */
+  IntervaloNaoUsufruido = "Intervalo Não Usufruído",
 }
 
 export interface ClockEvent {

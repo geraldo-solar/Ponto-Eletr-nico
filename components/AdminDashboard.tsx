@@ -5,6 +5,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import type { Employee, StoredClockEvent, AppState } from '../types';
 import { ClockType } from '../types';
 import { PIN_LENGTH } from '../constants';
+import { getIntervaloPreassinalado, INTERVALO_PREASSINALADO_MS, type IntervaloPreassinalado } from '../preassinalacao';
 import { LogoutIcon, EditIcon, DownloadIcon, DeleteIcon, UploadIcon } from './Icons';
 import { supabase } from '../lib/supabase';
 // Funções para formatar data/hora
@@ -70,6 +71,8 @@ interface WorkDetails {
         total: number;
     };
     status: 'complete' | 'incomplete' | 'error' | 'no_entry';
+    /** Intervalo pré-assinalado descontado da jornada, quando não houve marcação. */
+    intervaloPreassinalado?: IntervaloPreassinalado | null;
 }
 
 /**
@@ -140,7 +143,7 @@ const formatCurrency = (value: number): string => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 };
 
-const calculateWorkDetails = (dailyEvents: StoredClockEvent[]): WorkDetails => {
+const calculateWorkDetails = (dailyEvents: StoredClockEvent[], employee?: Employee): WorkDetails => {
     const defaultPayment = { payment: { normal: 0, extra: 0, total: 0 } };
     const sortedEvents = [...dailyEvents].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
@@ -176,6 +179,24 @@ const calculateWorkDetails = (dailyEvents: StoredClockEvent[]): WorkDetails => {
 
     if (totalMillis < 0) return { total: 0, normal: 0, extra: 0, status: 'error', ...defaultPayment };
 
+    // Pré-assinalação do intervalo: quando o colaborador não bateu o intervalo,
+    // desconta-se a hora de repouso previamente declarada (art. 74, §2º, da CLT).
+    // A marcação real, quando existe, sempre prevalece.
+    const temMarcacaoDeIntervalo = sortedEvents.some(
+        e => e.type === ClockType.InicioIntervalo || e.type === ClockType.FimIntervalo
+    );
+    const naoUsufruiu = sortedEvents.some(e => e.type === ClockType.IntervaloNaoUsufruido);
+    const intervaloPreassinalado = getIntervaloPreassinalado(
+        employee,
+        sortedEvents[0].timestamp,
+        totalMillis,
+        temMarcacaoDeIntervalo,
+        naoUsufruiu
+    );
+    if (intervaloPreassinalado) {
+        totalMillis -= INTERVALO_PREASSINALADO_MS;
+    }
+
     const normal = Math.min(totalMillis, NORMAL_WORK_MILLISECONDS);
     const extra = Math.max(0, totalMillis - NORMAL_WORK_MILLISECONDS);
 
@@ -195,8 +216,96 @@ const calculateWorkDetails = (dailyEvents: StoredClockEvent[]): WorkDetails => {
             extra: extraPayment,
             total: totalPayment
         },
-        status: 'complete'
+        status: 'complete',
+        intervaloPreassinalado
     };
+};
+
+interface CamposIntervalo {
+    intervalo_preassinalado?: boolean;
+    intervalo_inicio?: string | null;
+    intervalo_fim?: string | null;
+    intervalo_vigencia?: string | null;
+}
+
+/**
+ * Campos da pré-assinalação do intervalo, usados no cadastro e na edição.
+ * Marcado o checkbox, a hora declarada é descontada da jornada nos dias em que
+ * o colaborador não bater o intervalo, a partir da data de vigência.
+ */
+const IntervaloPreassinaladoFields: React.FC<{
+    valores: CamposIntervalo;
+    onChange: (campos: CamposIntervalo) => void;
+    idPrefix: string;
+}> = ({ valores, onChange, idPrefix }) => {
+    const ativo = !!valores.intervalo_preassinalado;
+
+    return (
+        <div style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '1rem', marginTop: '0.5rem' }}>
+            <label htmlFor={`${idPrefix}-preassinalado`} className="flex items-center gap-2 font-semibold cursor-pointer">
+                <input
+                    id={`${idPrefix}-preassinalado`}
+                    type="checkbox"
+                    checked={ativo}
+                    onChange={(e) => onChange({ ...valores, intervalo_preassinalado: e.target.checked })}
+                    style={{ width: '18px', height: '18px' }}
+                />
+                <span>Intervalo pré-assinalado</span>
+            </label>
+            <p className="text-sm text-muted mt-1">
+                O colaborador não bate o intervalo. A hora declarada abaixo é descontada da jornada
+                nos dias com mais de 7 horas de permanência. Se ele bater o intervalo, ou registrar
+                que não o usufruiu, a marcação dele prevalece.
+            </p>
+
+            {ativo && (
+                <div className="grid grid-cols-3 gap-3 mt-3">
+                    <div>
+                        <label htmlFor={`${idPrefix}-inicio`} className="block text-sm text-muted mb-1">Início</label>
+                        <input
+                            id={`${idPrefix}-inicio`}
+                            type="time"
+                            value={(valores.intervalo_inicio || '').slice(0, 5)}
+                            onChange={(e) => onChange({ ...valores, intervalo_inicio: e.target.value })}
+                            className="input"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor={`${idPrefix}-fim`} className="block text-sm text-muted mb-1">Fim</label>
+                        <input
+                            id={`${idPrefix}-fim`}
+                            type="time"
+                            value={(valores.intervalo_fim || '').slice(0, 5)}
+                            onChange={(e) => onChange({ ...valores, intervalo_fim: e.target.value })}
+                            className="input"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor={`${idPrefix}-vigencia`} className="block text-sm text-muted mb-1">Vigência</label>
+                        <input
+                            id={`${idPrefix}-vigencia`}
+                            type="date"
+                            value={valores.intervalo_vigencia || ''}
+                            onChange={(e) => onChange({ ...valores, intervalo_vigencia: e.target.value })}
+                            className="input"
+                        />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+/** Valida os campos antes de salvar. Retorna a mensagem de erro, ou null. */
+const validarIntervalo = (v: CamposIntervalo): string | null => {
+    if (!v.intervalo_preassinalado) return null;
+    if (!v.intervalo_inicio || !v.intervalo_fim || !v.intervalo_vigencia) {
+        return 'Para o intervalo pré-assinalado, preencha início, fim e data de vigência.';
+    }
+    if (v.intervalo_fim <= v.intervalo_inicio) {
+        return 'O fim do intervalo deve ser depois do início.';
+    }
+    return null;
 };
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -300,6 +409,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             alert(`O PIN deve ter ${PIN_LENGTH} dígitos`);
             return;
         }
+        const erroIntervalo = validarIntervalo(newEmployee);
+        if (erroIntervalo) {
+            alert(erroIntervalo);
+            return;
+        }
         onAddEmployee(newEmployee);
         setNewEmployee({ name: '', pin: '', phone: '', cpf: '', funcao: '', pix: '' });
     };
@@ -312,6 +426,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
         if (editingEmployee.pin.length !== PIN_LENGTH) {
             alert(`O PIN deve ter ${PIN_LENGTH} dígitos`);
+            return;
+        }
+        const erroIntervalo = validarIntervalo(editingEmployee);
+        if (erroIntervalo) {
+            alert(erroIntervalo);
             return;
         }
         onUpdateEmployee(editingEmployee);
@@ -478,13 +597,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         let totalPayment = 0;
 
         // Para cada funcionário, agrupar por turnos seguros e calcular
-        Object.values(employeeGroups).forEach(empEvents => {
+        Object.entries(employeeGroups).forEach(([employeeId, empEvents]) => {
+            const employee = employees.find(e => e.id === parseInt(employeeId));
             // Agrupar eventos deste funcionário por turnos
             const shifts = groupEventsByShifts(empEvents);
 
             // Calcular total para cada turno deste funcionário
             shifts.forEach(shiftEvents => {
-                const details = calculateWorkDetails(shiftEvents);
+                const details = calculateWorkDetails(shiftEvents, employee);
                 if (details.status === 'complete') {
                     totalNormal += details.normal;
                     totalExtra += details.extra;
@@ -499,7 +619,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             totalHours: formatMilliseconds(totalNormal + totalExtra),
             payment: formatCurrency(totalPayment)
         };
-    }, [filteredEvents]);
+    }, [filteredEvents, employees]);
 
     const handlePrintReport = () => {
         if (filteredEvents.length === 0) {
@@ -538,6 +658,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; font-size: 12px; }
                     th { background-color: #f2f2f2; }
                     .subtotal-row { font-weight: bold; background-color: #f9f9f9; }
+                    .nota-preassinalacao { margin-top: 10px; font-size: 10px; color: #444; line-height: 1.4; }
                     .legal-declaration { margin-top: 40px; border-top: 1px solid #333; padding-top: 20px; }
                     .signature-block { margin-top: 50px; display: flex; justify-content: space-between; }
                     .signature-line { border-top: 1px solid #333; width: 300px; text-align: center; padding-top: 5px; }
@@ -584,7 +705,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 let dayPayment = 0;
 
                 let entrada = '', inicioIntervalo = '', fimIntervalo = '', saida = '';
-                
+
                 // Extrair horários dos turnos deste dia
                 dayShifts.forEach(shiftEvents => {
                     shiftEvents.forEach(event => {
@@ -593,13 +714,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         if (event.type === 'Início Intervalo') inicioIntervalo = time;
                         if (event.type === 'Fim Intervalo') fimIntervalo = time;
                         if (event.type === 'Saída') saida = time;
+                        if (event.type === ClockType.IntervaloNaoUsufruido) {
+                            inicioIntervalo = 'NÃO USUFRUÍDO';
+                            fimIntervalo = '—';
+                        }
                     });
 
-                    const details = calculateWorkDetails(shiftEvents);
+                    const details = calculateWorkDetails(shiftEvents, employee);
                     if (details.status === 'complete') {
                         dayNormalMs += details.normal;
                         dayExtraMs += details.extra;
                         dayPayment += details.payment.total;
+                    }
+                    // Intervalo não batido, descontado por pré-assinalação: precisa
+                    // aparecer no espelho, e sinalizado como tal.
+                    if (details.intervaloPreassinalado) {
+                        inicioIntervalo = `${details.intervaloPreassinalado.inicio} *`;
+                        fimIntervalo = `${details.intervaloPreassinalado.fim} *`;
                     }
                 });
 
@@ -660,6 +791,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </tr>
                                 </tbody>
                             </table>
+
+                            <p class="nota-preassinalacao">* Intervalo pré-assinalado, na forma do art. 74, §2º, da CLT, conforme o Comunicado Interno nº 01/2026 e o termo de ciência assinado pelo colaborador. Havendo dia em que o intervalo não tenha sido usufruído, comunique o setor de pessoal para retificação e pagamento.</p>
 
                             <div class="legal-declaration">
                                 <p><strong>DECLARAÇÃO:</strong> Declaro para os devidos fins que os registros de horários acima discriminados correspondem à fiel realidade da jornada de trabalho desempenhada no período acima citado, nada tendo a reivindicar ou invalidar.</p>
@@ -846,6 +979,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <option value={ClockType.InicioIntervalo}>Início Intervalo</option>
                                 <option value={ClockType.FimIntervalo}>Fim Intervalo</option>
                                 <option value={ClockType.Saida}>Saída</option>
+                                <option value={ClockType.IntervaloNaoUsufruido}>Intervalo Não Usufruído</option>
                             </select>
                         </div>
                     </div>
@@ -949,6 +1083,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         />
                     </div>
                 </div>
+
+                <IntervaloPreassinaladoFields
+                    idPrefix="novo"
+                    valores={newEmployee}
+                    onChange={(campos) => setNewEmployee({ ...newEmployee, ...campos })}
+                />
 
                 <button
                     onClick={handleAddEmployee}
@@ -1100,6 +1240,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     className="input"
                                 />
                             </div>
+                            <IntervaloPreassinaladoFields
+                                idPrefix="edit"
+                                valores={editingEmployee}
+                                onChange={(campos) => setEditingEmployee({ ...editingEmployee, ...campos })}
+                            />
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setEditingEmployee(null)}
@@ -1171,6 +1316,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <option value={ClockType.InicioIntervalo}>{ClockType.InicioIntervalo}</option>
                             <option value={ClockType.FimIntervalo}>{ClockType.FimIntervalo}</option>
                             <option value={ClockType.Saida}>{ClockType.Saida}</option>
+                            <option value={ClockType.IntervaloNaoUsufruido}>{ClockType.IntervaloNaoUsufruido}</option>
                         </select>
                     </div>
                 </div>
