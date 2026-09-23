@@ -15,6 +15,14 @@ const formatBrasiliaTime = (timestamp: string | Date): string => {
     return `${hours}:${minutes}:${seconds}`;
 };
 
+// As batidas guardam a hora de Belém com "Z" (convenção do banco): o dia da
+// batida é a parte da data em UTC, comparada com o dia de hoje no aparelho.
+const ehDeHoje = (timestamp: string | Date): boolean => {
+    const d = new Date();
+    const hoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return new Date(timestamp).toISOString().slice(0, 10) === hoje;
+};
+
 interface ClockScreenProps {
     employee: Employee;
     onLogout: () => void;
@@ -52,7 +60,7 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
         if (!events || events.length === 0) return [ClockType.Entrada];
 
         const todayEvents = events
-            .filter(e => new Date(e.timestamp).toDateString() === new Date().toDateString())
+            .filter(e => ehDeHoje(e.timestamp))
             .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
         if (todayEvents.length === 0) return [ClockType.Entrada];
@@ -92,7 +100,7 @@ const ClockScreen: React.FC<ClockScreenProps> = ({ employee, onLogout, events, o
 
     const todayEvents = useMemo(() => {
         return [...events]
-            .filter(e => new Date(e.timestamp).toDateString() === new Date().toDateString())
+            .filter(e => ehDeHoje(e.timestamp))
             .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()); // Ordem crescente (mais antigo primeiro)
     }, [events]);
 

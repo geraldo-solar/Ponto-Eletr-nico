@@ -1,143 +1,85 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { Employee, ClockType, StoredClockEvent } from './types';
 import { ADMIN_USER } from './constants';
 import LoginScreen from './components/LoginScreen';
 import ClockScreen from './components/ClockScreen';
 import AdminDashboard from './components/AdminDashboard';
-import { supabase } from './lib/supabase';
+import { pedirAoPonto, batidaDaLinha, horarioDoBanco } from './lib/pontoApi';
+
+// O aparelho não baixa mais funcionários nem batidas: o funcionário recebe
+// só o próprio nome e as batidas de hoje, depois de o servidor conferir o PIN;
+// o painel recebe tudo, depois de o servidor conferir a senha (VEN-10).
 
 const App: React.FC = () => {
   const [loggedInEmployee, setLoggedInEmployee] = useState<Employee | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Só do painel do administrador
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [allEvents, setAllEvents] = useState<StoredClockEvent[]>([]);
 
-  // Função para buscar funcionários do Supabase
-  const fetchEmployees = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('ponto_employees')
-        .select('*')
-        .order('id', { ascending: true });
-        
-      if (error) throw error;
-      setEmployees(data || []);
-    } catch (error) {
-      console.error("Erro ao carregar funcionários:", error);
-    }
-  }, []);
+  // Só da tela do funcionário
+  const [ficha, setFicha] = useState<string>('');
+  const [employeeEvents, setEmployeeEvents] = useState<StoredClockEvent[]>([]);
 
-  // Função para buscar eventos do Supabase (com paginação para buscar mais de 1000 registros)
-  const fetchEvents = useCallback(async () => {
-    try {
-      let allFetchedData: any[] = [];
-      let page = 0;
-      const pageSize = 1000;
-      let hasMore = true;
-
-      while (hasMore) {
-        const { data, error } = await supabase
-          .from('ponto_events')
-          .select('*')
-          .order('timestamp', { ascending: true })
-          .range(page * pageSize, (page + 1) * pageSize - 1);
-          
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          allFetchedData = [...allFetchedData, ...data];
-          if (data.length < pageSize) {
-            hasMore = false;
-          } else {
-            page++;
-          }
-        } else {
-          hasMore = false;
-        }
+  const carregarPainel = useCallback(async (): Promise<boolean> => {
+    const r = await pedirAoPonto<{ funcionarios: Employee[]; batidas: any[] }>('dados');
+    if (!r.ok) {
+      if (r.status === 401) {
+        alert(r.erro);
+        setIsAdmin(false);
+        setLoggedInEmployee(null);
+      } else {
+        console.error('Erro ao carregar o painel:', r.erro);
       }
-      
-      const eventsWithDates = allFetchedData.map((event: any) => ({
-        id: event.id,
-        employeeId: event.employee_id,
-        employeeName: event.employee_name,
-        type: event.type,
-        timestamp: new Date(event.timestamp)
-      }));
-      setAllEvents(eventsWithDates);
-    } catch (error) {
-      console.error("Erro ao carregar eventos:", error);
+      return false;
     }
+    setEmployees(r.dados.funcionarios || []);
+    setAllEvents((r.dados.batidas || []).map(batidaDaLinha));
+    return true;
   }, []);
 
-  // Carrega os dados ao iniciar
+  // Painel aberto: atualiza ao voltar para a aba (substitui o tempo real).
   useEffect(() => {
-    const loadData = async () => {
-      await Promise.all([fetchEmployees(), fetchEvents()]);
-      setIsLoading(false);
-    };
-    loadData();
-  }, [fetchEmployees, fetchEvents]);
+    if (!isAdmin) return;
+    const aoVoltar = () => { if (document.visibilityState === 'visible') carregarPainel(); };
+    document.addEventListener('visibilitychange', aoVoltar);
+    return () => document.removeEventListener('visibilitychange', aoVoltar);
+  }, [isAdmin, carregarPainel]);
 
-  // Supabase Real-time para manter os dados atualizados sem o polling de 5 segundos que causava erro de cota
-  useEffect(() => {
-    if (isLoading) return;
-
-    const channel = supabase.channel('ponto_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ponto_events' }, () => {
-        fetchEvents();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ponto_employees' }, () => {
-        fetchEmployees();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [isLoading, fetchEvents, fetchEmployees]);
-
-  const handleLogin = (employee: Employee) => {
-    if (employee.id === ADMIN_USER.id) {
-      setIsAdmin(true);
-    }
+  const handleLogin = (employee: Employee, batidasDeHoje: StoredClockEvent[], fichaDaBatida: string) => {
+    setFicha(fichaDaBatida);
+    setEmployeeEvents(batidasDeHoje);
     setLoggedInEmployee(employee);
   };
 
+  const handleAdminLogin = async () => {
+    setIsLoading(true);
+    const ok = await carregarPainel();
+    setIsLoading(false);
+    if (ok) {
+      setIsAdmin(true);
+      setLoggedInEmployee(ADMIN_USER);
+    }
+  };
+
   const handleLogout = () => {
+    if (isAdmin) pedirAoPonto('admin-sair');
     setLoggedInEmployee(null);
     setIsAdmin(false);
+    setFicha('');
+    setEmployeeEvents([]);
+    setEmployees([]);
+    setAllEvents([]);
   };
 
   const handleAddEvent = async (type: ClockType) => {
     if (!loggedInEmployee) return;
-
-    try {
-      // Usar horário local do dispositivo (código original que funcionava perfeitamente com a lógica de fuso horário local)
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const seconds = String(now.getSeconds()).padStart(2, '0');
-      const localTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
-
-      const { error } = await supabase.from('ponto_events').insert([{
-        employee_id: loggedInEmployee.id,
-        employee_name: loggedInEmployee.name,
-        type,
-        timestamp: localTimestamp,
-      }]);
-
-      if (error) throw error;
-      // Não é mais necessário chamar fetchEvents manualmente pois o Real-time cuidará disso, mas chamamos para ser imediato
-      await fetchEvents();
-    } catch (error) {
-      console.error("Erro ao adicionar evento:", error);
-      throw error;
-    }
+    const r = await pedirAoPonto<{ batida: any }>('bater', { ficha, tipo: type });
+    if (!r.ok) throw new Error(r.erro);
+    const nova = batidaDaLinha(r.dados.batida);
+    setEmployeeEvents(prev => prev.some(e => e.id === nova.id) ? prev : [...prev, nova]);
   };
 
   const handleDownloadBackup = async () => {
@@ -165,151 +107,41 @@ const App: React.FC = () => {
   };
 
   const handleAddManualEvent = async (details: { employeeId: number; type: ClockType; timestamp: Date; }): Promise<boolean> => {
-    const employee = employees.find(e => e.id === details.employeeId);
-    if (!employee) {
-      console.error("Funcionário não encontrado para adicionar evento manual");
+    const r = await pedirAoPonto('batida-manual', {
+      funcionarioId: details.employeeId,
+      tipo: details.type,
+      timestamp: horarioDoBanco(details.timestamp),
+    });
+    if (!r.ok) {
+      console.error('[handleAddManualEvent] Erro:', r.erro);
       return false;
     }
-
-    try {
-      // Converter horário local de Brasília para UTC mantendo os mesmos números
-      const localDate = details.timestamp;
-      const year = localDate.getFullYear();
-      const month = String(localDate.getMonth() + 1).padStart(2, '0');
-      const day = String(localDate.getDate()).padStart(2, '0');
-      const hours = String(localDate.getHours()).padStart(2, '0');
-      const minutes = String(localDate.getMinutes()).padStart(2, '0');
-      const seconds = String(localDate.getSeconds()).padStart(2, '0');
-      const utcTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
-
-      const { error } = await supabase.from('ponto_events').insert([{
-        employee_id: employee.id,
-        employee_name: employee.name,
-        type: details.type,
-        timestamp: utcTimestamp,
-      }]);
-
-      if (error) {
-        console.error('[handleAddManualEvent] Erro da API:', error);
-        return false;
-      }
-      
-      setTimeout(() => fetchEvents(), 500);
-      return true;
-    } catch (error) {
-      console.error("Erro ao adicionar evento manual:", error);
-      return false;
-    }
+    setTimeout(() => carregarPainel(), 300);
+    return true;
   };
 
   const handleDeleteEvent = async (eventId: number) => {
-    try {
-      const { error } = await supabase.from('ponto_events').delete().eq('id', eventId);
-      
-      if (error) {
-        alert(`Erro ao deletar: ${error.message || 'Erro desconhecido'}`);
-      } else {
-        await fetchEvents();
-      }
-    } catch (error) {
-      console.error("Erro ao deletar evento:", error);
-      alert("Erro de conexão ao tentar deletar o registro.");
-    }
-  };
-
-  const handleAddEmployeeWithId = async (newEmployee: Employee) => {
-    const { error } = await supabase.from('ponto_employees').insert([{
-      id: newEmployee.id,
-      name: newEmployee.name,
-      pin: newEmployee.pin,
-      phone: newEmployee.phone,
-      cpf: newEmployee.cpf || null,
-      funcao: newEmployee.funcao || null,
-      pix: newEmployee.pix || null
-    }]);
-    if (error) throw error;
+    const r = await pedirAoPonto('batida-apagar', { id: eventId });
+    if (!r.ok) alert(`Erro ao deletar: ${r.erro}`);
+    else await carregarPainel();
   };
 
   const handleAddEmployee = async (newEmployee: Omit<Employee, 'id'>) => {
-    try {
-      const { data: maxIdData, error: maxIdError } = await supabase
-        .from('ponto_employees')
-        .select('id')
-        .order('id', { ascending: false })
-        .limit(1);
-
-      if (maxIdError) throw maxIdError;
-
-      const nextId = (maxIdData && maxIdData.length > 0) ? (maxIdData[0].id + 1) : 1;
-
-      const { error } = await supabase.from('ponto_employees').insert([{
-        id: nextId,
-        name: newEmployee.name,
-        pin: newEmployee.pin,
-        phone: newEmployee.phone,
-        cpf: newEmployee.cpf || null,
-        funcao: newEmployee.funcao || null,
-        pix: newEmployee.pix || null,
-        intervalo_preassinalado: !!newEmployee.intervalo_preassinalado,
-        intervalo_inicio: newEmployee.intervalo_inicio || null,
-        intervalo_fim: newEmployee.intervalo_fim || null,
-        intervalo_vigencia: newEmployee.intervalo_vigencia || null
-      }]);
-
-      if (!error) {
-        await fetchEmployees();
-      } else {
-        console.error("Erro ao adicionar funcionário:", error);
-        alert(`Erro ao adicionar funcionário: ${error.message}`);
-      }
-    } catch (error: any) {
-      console.error("Erro ao adicionar funcionário:", error);
-      alert(`Erro ao adicionar funcionário: ${error.message || error}`);
-    }
+    const r = await pedirAoPonto('funcionario-novo', { funcionario: newEmployee });
+    if (r.ok) await carregarPainel();
+    else alert(`Erro ao adicionar funcionário: ${r.erro}`);
   };
 
   const handleToggleEmployeeActive = async (employeeId: number, active: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('ponto_employees')
-        .update({ active })
-        .eq('id', employeeId);
-
-      if (!error) {
-        await fetchEmployees();
-      } else {
-        console.error(`Erro ao ${active ? 'reativar' : 'desativar'} funcionário:`, error);
-        alert(`Erro ao ${active ? 'reativar' : 'desativar'} funcionário: ${error.message}`);
-      }
-    } catch (error: any) {
-      console.error(`Erro ao ${active ? 'reativar' : 'desativar'} funcionário:`, error);
-      alert(`Erro ao ${active ? 'reativar' : 'desativar'} funcionário: ${error.message || error}`);
-    }
+    const r = await pedirAoPonto('funcionario-ativo', { id: employeeId, ativo: active });
+    if (r.ok) await carregarPainel();
+    else alert(`Erro ao ${active ? 'reativar' : 'desativar'} funcionário: ${r.erro}`);
   };
 
   const handleUpdateEmployee = async (updatedEmployee: Employee) => {
-    try {
-      const { error } = await supabase.from('ponto_employees').update({
-        name: updatedEmployee.name,
-        pin: updatedEmployee.pin,
-        phone: updatedEmployee.phone,
-        cpf: updatedEmployee.cpf || null,
-        funcao: updatedEmployee.funcao || null,
-        pix: updatedEmployee.pix || null,
-        intervalo_preassinalado: !!updatedEmployee.intervalo_preassinalado,
-        intervalo_inicio: updatedEmployee.intervalo_inicio || null,
-        intervalo_fim: updatedEmployee.intervalo_fim || null,
-        intervalo_vigencia: updatedEmployee.intervalo_vigencia || null
-      }).eq('id', updatedEmployee.id);
-
-      if (!error) {
-        await fetchEmployees();
-      } else {
-        console.error("Erro ao atualizar funcionário:", error);
-      }
-    } catch (error) {
-      console.error("Erro ao atualizar funcionário:", error);
-    }
+    const r = await pedirAoPonto('funcionario-salvar', { funcionario: updatedEmployee });
+    if (r.ok) await carregarPainel();
+    else alert(`Erro ao atualizar funcionário: ${r.erro}`);
   };
 
   const handleImportEmployees = async (employeesToImport: Omit<Employee, 'id'>[]): Promise<{ added: number, updated: number, errors: string[] }> => {
@@ -317,84 +149,32 @@ const App: React.FC = () => {
 
     // Validar duplicatas no arquivo
     const pinsInFile = employeesToImport.map(e => e.pin);
-    const uniquePinsInFile = new Set(pinsInFile);
-    if (pinsInFile.length !== uniquePinsInFile.size) {
+    if (pinsInFile.length !== new Set(pinsInFile).size) {
       errors.push("O arquivo CSV contém PINs duplicados.");
-    }
-    if (employeesToImport.some(emp => emp.pin === ADMIN_USER.pin)) {
-      errors.push(`O PIN ${ADMIN_USER.pin} é reservado para o administrador.`);
-    }
-    if (errors.length > 0) {
       return { added: 0, updated: 0, errors };
     }
 
     let addedCount = 0;
     let updatedCount = 0;
-
-    try {
-      const { data: maxIdData, error: maxIdError } = await supabase
-        .from('ponto_employees')
-        .select('id')
-        .order('id', { ascending: false })
-        .limit(1);
-
-      if (maxIdError) throw maxIdError;
-      let currentMaxId = (maxIdData && maxIdData.length > 0) ? maxIdData[0].id : 0;
-
-      for (const importedEmp of employeesToImport) {
-        const existingEmployee = employees.find(e => e.pin === importedEmp.pin);
-
-        if (existingEmployee) {
-          // Atualizar
-          await handleUpdateEmployee({ ...existingEmployee, ...importedEmp });
-          updatedCount++;
-        } else {
-          // Adicionar
-          currentMaxId++;
-          await handleAddEmployeeWithId({ ...importedEmp, id: currentMaxId });
-          addedCount++;
-        }
-      }
-
-      await fetchEmployees();
-      return { added: addedCount, updated: updatedCount, errors };
-    } catch (error: any) {
-      errors.push(`Falha ao importar funcionários: ${error.message || error}`);
-      return { added: 0, updated: 0, errors };
+    for (const importedEmp of employeesToImport) {
+      const existingEmployee = employees.find(e => e.pin === importedEmp.pin);
+      const r = existingEmployee
+        ? await pedirAoPonto('funcionario-salvar', { funcionario: { ...existingEmployee, ...importedEmp } })
+        : await pedirAoPonto('funcionario-novo', { funcionario: importedEmp });
+      if (!r.ok) errors.push(`${importedEmp.name || importedEmp.pin}: ${r.erro}`);
+      else if (existingEmployee) updatedCount++;
+      else addedCount++;
     }
+
+    await carregarPainel();
+    return { added: addedCount, updated: updatedCount, errors };
   };
 
   const handleUpdateEvent = async (eventId: number, newTimestamp: Date) => {
-    try {
-      // Usar horário local do dispositivo (mesmo formato usado em outras funções)
-      const year = newTimestamp.getFullYear();
-      const month = String(newTimestamp.getMonth() + 1).padStart(2, '0');
-      const day = String(newTimestamp.getDate()).padStart(2, '0');
-      const hours = String(newTimestamp.getHours()).padStart(2, '0');
-      const minutes = String(newTimestamp.getMinutes()).padStart(2, '0');
-      const seconds = String(newTimestamp.getSeconds()).padStart(2, '0');
-      const localTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
-
-      const { error } = await supabase.from('ponto_events').update({ timestamp: localTimestamp }).eq('id', eventId);
-
-      if (!error) {
-        await fetchEvents();
-      } else {
-        console.error("Erro ao atualizar evento:", error);
-      }
-    } catch (error) {
-      console.error("Erro ao atualizar evento:", error);
-    }
+    const r = await pedirAoPonto('batida-editar', { id: eventId, timestamp: horarioDoBanco(newTimestamp) });
+    if (r.ok) await carregarPainel();
+    else console.error("Erro ao atualizar evento:", r.erro);
   };
-
-  const employeeEvents = useMemo(() =>
-    allEvents.filter(event => loggedInEmployee && event.employeeId === loggedInEmployee.id),
-    [allEvents, loggedInEmployee]
-  );
-
-  const activeEmployees = useMemo(() => employees.filter(emp => emp.active !== false), [employees]);
-
-  const employeesWithAdmin = useMemo(() => [...activeEmployees, ADMIN_USER], [activeEmployees]);
 
   return (
     <div className="app-container">
@@ -429,7 +209,7 @@ const App: React.FC = () => {
             onDeleteEvent={handleDeleteEvent}
             onDownloadBackup={handleDownloadBackup}
             onRefresh={async () => {
-              await Promise.all([fetchEmployees(), fetchEvents()]);
+              await carregarPainel();
             }}
             onLogout={handleLogout}
           />
@@ -441,7 +221,7 @@ const App: React.FC = () => {
             onAddEvent={handleAddEvent}
           />
         ) : (
-          <LoginScreen onLogin={handleLogin} employees={employeesWithAdmin} events={allEvents} />
+          <LoginScreen onLogin={handleLogin} onAdminLogin={handleAdminLogin} />
         )}
       </main>
     </div>

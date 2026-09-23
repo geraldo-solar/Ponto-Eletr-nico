@@ -9,4 +9,5 @@ export const INITIAL_EMPLOYEES: Employee[] = [
 
 export const PIN_LENGTH = 4;
 
-export const ADMIN_USER: Employee = { id: 999, name: 'Administrador', pin: '7531', phone: '' };
+// O administrador entra com senha conferida no servidor (api/ponto.js).
+export const ADMIN_USER: Employee = { id: 999, name: 'Administrador', pin: '', phone: '' };

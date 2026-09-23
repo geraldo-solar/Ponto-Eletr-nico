@@ -7,7 +7,7 @@ import { ClockType } from '../types';
 import { PIN_LENGTH } from '../constants';
 import { getIntervaloPreassinalado, INTERVALO_PREASSINALADO_MS, type IntervaloPreassinalado } from '../preassinalacao';
 import { LogoutIcon, EditIcon, DownloadIcon, DeleteIcon, UploadIcon } from './Icons';
-import { supabase } from '../lib/supabase';
+import { pedirAoPonto } from '../lib/pontoApi';
 // Funções para formatar data/hora
 // O banco converte timestamps com offset para UTC, então usamos getUTC* para exibir
 const formatBrasiliaDateTime = (timestamp: string | Date): string => {
@@ -463,15 +463,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                         showMessage('🔄 Restaurando backup... Aguarde.', 'success');
 
-                        // Restaurar via Supabase
-                        const { error: empError } = await supabase.from('ponto_employees').upsert(backupData.employees);
-                        const { error: evError } = await supabase.from('ponto_events').upsert(backupData.events);
-
-                        if (empError || evError) {
-                            throw new Error('Erro ao salvar no banco de dados');
+                        // Restaurar pelo servidor (confere a sessão do administrador)
+                        const r = await pedirAoPonto<{ funcionarios: number; batidas: number }>('restaurar', {
+                            funcionarios: backupData.employees,
+                            batidas: backupData.events,
+                        });
+                        if (!r.ok) {
+                            throw new Error(r.erro || 'Erro ao salvar no banco de dados');
                         }
 
-                        const result = { employeesCount: backupData.employees.length, eventsCount: backupData.events.length };
+                        const result = { employeesCount: r.dados.funcionarios, eventsCount: r.dados.batidas };
 
                         showMessage(
                             `✅ Backup restaurado com sucesso! ${result.employeesCount} funcionários e ${result.eventsCount} batidas importados.`,
@@ -912,18 +913,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const newTimestamp = `${editDate}T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:${seconds}.000Z`;
 
             try {
-                const { error } = await supabase.from('ponto_events').update({
-                    type: editType,
+                const r = await pedirAoPonto('batida-editar', {
+                    id: editingEvent.id,
+                    tipo: editType,
                     timestamp: newTimestamp
-                }).eq('id', editingEvent.id);
+                });
 
-                if (!error) {
+                if (r.ok) {
                     alert('Evento atualizado com sucesso!');
                     setEditingEvent(null);
                     onRefresh();
                 } else {
-                    console.error('Erro do Supabase:', error);
-                    alert(`Erro ao atualizar evento: ${error.message || 'Erro desconhecido'}`);
+                    console.error('Erro ao atualizar evento:', r.erro);
+                    alert(`Erro ao atualizar evento: ${r.erro}`);
                 }
             } catch (error: any) {
                 console.error('Erro ao atualizar evento:', error);
