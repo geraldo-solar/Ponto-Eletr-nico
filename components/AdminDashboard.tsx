@@ -6,6 +6,7 @@ import type { Employee, StoredClockEvent, AppState } from '../types';
 import { ClockType } from '../types';
 import { PIN_LENGTH } from '../constants';
 import { getIntervaloPreassinalado, INTERVALO_PREASSINALADO_MS, type IntervaloPreassinalado } from '../preassinalacao';
+import { getValorHora } from '../tarifas';
 import { LogoutIcon, EditIcon, DownloadIcon, DeleteIcon, UploadIcon } from './Icons';
 import { supabase } from '../lib/supabase';
 // Funções para formatar data/hora
@@ -58,8 +59,6 @@ interface AdminDashboardProps {
 
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000';
 const NORMAL_WORK_MILLISECONDS = 8 * 60 * 60 * 1000;
-const NORMAL_HOUR_RATE = 8.15;
-const EXTRA_HOUR_RATE = 16.30;
 
 interface WorkDetails {
     total: number;
@@ -203,8 +202,12 @@ const calculateWorkDetails = (dailyEvents: StoredClockEvent[], employee?: Employ
     const normalHours = normal / (1000 * 60 * 60);
     const extraHours = extra / (1000 * 60 * 60);
 
-    const normalPayment = normalHours * NORMAL_HOUR_RATE;
-    const extraPayment = extraHours * EXTRA_HOUR_RATE;
+    // O valor da hora é o vigente no dia do turno, para que um reajuste não
+    // recalcule competências já fechadas.
+    const valorHora = getValorHora(sortedEvents[0].timestamp);
+
+    const normalPayment = normalHours * valorHora.normal;
+    const extraPayment = extraHours * valorHora.extra;
     const totalPayment = normalPayment + extraPayment;
 
     return {
